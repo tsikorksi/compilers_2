@@ -19,12 +19,21 @@
 // OTHER DEALINGS IN THE SOFTWARE.
 
 #include <cassert>
+#include <utility>
 #include "node_base.h"
 
 NodeBase::NodeBase() {
 }
 
 NodeBase::~NodeBase() {
+}
+
+std::shared_ptr<Type> NodeBase::get_type() {
+    return type;
+}
+
+void NodeBase::set_type(std::shared_ptr<Type> p) {
+    type = std::move(p);
 }
 
 // TODO: implement member functions
