@@ -39,7 +39,6 @@ public:
 
 private:
   // TODO: add helper functions
-
     static int search_for_tag(Node *n, BasicTypeKind type);
 
     void enter_scope();
@@ -47,6 +46,8 @@ private:
     void leave_scope();
 
     static void type_switcher(Node *declare, Node *type);
+
+    void define_parameters(Node *n);
 };
 
 #endif // SEMANTIC_ANALYSIS_H

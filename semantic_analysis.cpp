@@ -28,27 +28,37 @@ void SemanticAnalysis::visit_union_type(Node *n) {
 void SemanticAnalysis::visit_variable_declaration(Node *n) {
     // visit basic type
     visit(n->get_kid(1));
+
+    // iterate through declarators
     for (unsigned i = 0; i < n->get_kid(2)->get_num_kids(); i++) {
+
+        // the current declarator
         Node * current = n->get_kid(2)->get_kid(i);
+
+        // annotate it with its type
         type_switcher(current ,n->get_kid(1));
         std::shared_ptr<Type> p = current->get_type();
+
+        // add it to the Symbol Table
         m_cur_symtab->define(SymbolKind::VARIABLE,current->get_kid(0)->get_str(),p);
     }
 }
 
+/// Annotate a complex type in the leaf node
+/// \param declare pointer to the declarator
+/// \param type pointer to the base type node
 void SemanticAnalysis::type_switcher(Node *declare, Node *type) {
+    declare->set_type(type->get_type());
+
     switch (declare->get_tag()) {
         case AST_NAMED_DECLARATOR:
-            declare->set_type(type->get_type());
             break;
         case AST_POINTER_DECLARATOR:
-            declare->set_type(type->get_type());
             declare->make_pointer();
             declare->get_kid(0)->set_str(declare->get_kid(0)->get_kid(0)->get_str());
             break;
 
         case AST_ARRAY_DECLARATOR:
-            declare->set_type(type->get_type());
             declare->make_array(stoi(declare->get_kid(1)->get_str()));
             declare->get_kid(0)->set_str(declare->get_kid(0)->get_kid(0)->get_str());
             break;
@@ -60,7 +70,7 @@ void SemanticAnalysis::visit_basic_type(Node *n) {
         SemanticError::raise(n->get_loc(), "No Type specified");
     }
     if (n->get_num_kids() == 1 && n->get_kid(0)->get_tag() == TOK_VOID) {
-        std::shared_ptr<Type> p(new BasicType(BasicTypeKind::VOID, false));
+        std::shared_ptr<Type> p(new BasicType(BasicTypeKind::VOID, true));
         n->set_type(p);
         return;
     }
@@ -116,21 +126,32 @@ void SemanticAnalysis::visit_basic_type(Node *n) {
 void SemanticAnalysis::visit_function_definition(Node *n) {
     visit_function_declaration(n);
     enter_scope();
+    define_parameters(n);
+    enter_scope();
     visit(n->get_kid(3));
     leave_scope();
+    leave_scope();
+}
+
+void SemanticAnalysis::define_parameters(Node *n) {
+    std::shared_ptr<Type> params = n->get_kid(0)->get_type();
+    for (unsigned i = 0; i < params->get_num_members(); i++) {
+        Member param = params->get_member(i);
+        m_cur_symtab->define(SymbolKind::VARIABLE, param.get_name(), param.get_type());
+    }
 }
 
 void SemanticAnalysis::visit_function_declaration(Node *n) {
     // visit  function type
     visit(n->get_kid(0));
+    Node * params = n->get_kid(2);
 
     // visit parameters
-    visit_children(n->get_kid(2));
+    visit_children(params);
     n->get_kid(0)->make_function();
 
-    Node * params = n->get_kid(2);
     for (unsigned i = 0; i < params->get_num_kids(); i++) {
-        auto *mem = new Member(params->get_kid(i)->get_str(), params->get_kid(i)->get_type());
+        auto *mem = new Member(params->get_kid(i)->get_str(), params->get_kid(i)->get_kid(1)->get_type());
         n->get_kid(0)->get_type()->add_member(*mem);
     }
 
