@@ -41,6 +41,11 @@ private:
   // TODO: add helper functions
 
     static int search_for_tag(Node *n, BasicTypeKind type);
+
+    void enter_scope();
+
+    void leave_scope();
+
 };
 
 #endif // SEMANTIC_ANALYSIS_H

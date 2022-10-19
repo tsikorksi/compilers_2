@@ -32,18 +32,28 @@
 // etc.)
 class NodeBase {
 private:
-  std::shared_ptr<Type> type;
-  // copy ctor and assignment operator not supported
-  NodeBase(const NodeBase &);
-  NodeBase &operator=(const NodeBase &);
+    std::shared_ptr<Type> m_type;
+    Symbol *m_symbol;
+    // copy ctor and assignment operator not supported
+    NodeBase(const NodeBase &);
+    NodeBase &operator=(const NodeBase &);
 
 public:
-  NodeBase();
-  virtual ~NodeBase();
-  std::shared_ptr<Type> get_type();
-  void set_type(std::shared_ptr<Type> p);
+    NodeBase();
+    virtual ~NodeBase();
+    void set_symbol(Symbol * sym);
+    void set_type(const std::shared_ptr<Type> &type);
+    bool has_symbol() const;
+    Symbol *get_symbol() const;
+    std::shared_ptr<Type> get_type() const;
 
-  // TODO: add member functions
+    bool has_type() const;
+
+    void make_function();
+
+    void make_pointer();
+
+    void make_array(unsigned int size);
 };
 
 #endif // NODE_BASE_H

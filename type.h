@@ -51,6 +51,7 @@ public:
 
   // Some member functions for convenience
   bool is_integral() const { return is_basic() && get_basic_type_kind() != BasicTypeKind::VOID; }
+  const Member *find_member(const std::string &name) const;
 
   // Note that Type provides default implementations of virtual
   // member functions that will be appropriate for most of the
@@ -223,6 +224,8 @@ private:
 public:
   StructType(const std::string &name);
   virtual ~StructType();
+
+  std::string get_name() const { return m_name; }
 
   virtual bool is_same(const Type *other) const;
   virtual std::string as_str() const;
