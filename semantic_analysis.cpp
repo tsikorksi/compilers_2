@@ -14,8 +14,7 @@ SemanticAnalysis::SemanticAnalysis()
     m_cur_symtab = m_global_symtab;
 }
 
-SemanticAnalysis::~SemanticAnalysis() {
-}
+SemanticAnalysis::~SemanticAnalysis() = default;
 
 void SemanticAnalysis::visit_struct_type(Node *n) {
     // TODO: implement
@@ -55,7 +54,7 @@ void SemanticAnalysis::type_switcher(Node *declare, Node *type) {
             break;
         case AST_POINTER_DECLARATOR:
             declare->make_pointer();
-            declare->get_kid(0)->set_str(declare->get_kid(0)->get_kid(0)->get_str());
+            visit_pointer_declarator(declare);
             break;
 
         case AST_ARRAY_DECLARATOR:
@@ -64,39 +63,40 @@ void SemanticAnalysis::type_switcher(Node *declare, Node *type) {
             break;
     }
 }
+/// Dive into nested pointers looking for the layers. Shift name up the chain, preserving base type
+/// \param n the current pointer
+void SemanticAnalysis::visit_pointer_declarator(Node *n) {
+    if (n->get_kid(0)->get_tag() == ASTNodeTag::AST_NAMED_DECLARATOR) {
+        n->set_str(n->get_kid(0)->get_kid(0)->get_str());
+    } else {
+        visit_pointer_declarator(n->get_kid(0));
+        n->make_pointer();
+        n->set_str(n->get_kid(0)->get_str());
+    }
+    n->get_kid(0)->set_str(n->get_kid(0)->get_kid(0)->get_str());
+}
 
 void SemanticAnalysis::visit_basic_type(Node *n) {
+
     if (n->get_num_kids() == 0) {
         SemanticError::raise(n->get_loc(), "No Type specified");
     }
-    if (n->get_num_kids() == 1 && n->get_kid(0)->get_tag() == TOK_VOID) {
-        std::shared_ptr<Type> p(new BasicType(BasicTypeKind::VOID, true));
-        n->set_type(p);
-        return;
-    }
 
-    bool sign = true;
-    bool a_char = false;
+    // Find a void, if so make sure it is the only keyword
     for (unsigned i = 0; i < n->get_num_kids(); i++) {
-        if (n->get_kid(i)->get_tag() == TOK_CHAR) {
-            a_char = true;
-        }
-        if (n->get_kid(i)->get_tag() == TOK_UNSIGNED) {
-            sign = false;
+        if (n->get_kid(i)->get_tag() == TOK_VOID) {
+            if (n->get_num_kids() == 1) {
+                std::shared_ptr<Type> p(new BasicType(BasicTypeKind::VOID, true));
+                n->set_type(p);
+                return;
+            }
+            SemanticError::raise(n->get_loc(), "Cannot have qualifiers on void type");
         }
     }
 
-    if (a_char) {
-        std::shared_ptr<Type> p(new BasicType(BasicTypeKind::CHAR, sign));
-        n->set_type(p);
-        return;
-    }
-
-    int type = -1;
+    // Find any type specifiers
+    int type = 0;
     for (unsigned i = 0; i < n->get_num_kids(); i++) {
-        if (n->get_kid(i)->get_tag() == TOK_INT) {
-            type = 0;
-        }
         if (n->get_kid(i)->get_tag() == TOK_SHORT) {
             type = 1;
         }
@@ -104,13 +104,28 @@ void SemanticAnalysis::visit_basic_type(Node *n) {
             type = 2;
         }
     }
-    if (type < 0) {
-        SemanticError::raise(n->get_loc(), "Invalid Basic Type");
+
+    int sign = 0;
+    bool a_char = false;
+    // Find if char, also looking for signing if present
+    for (unsigned i = 0; i < n->get_num_kids(); i++) {
+        if (n->get_kid(i)->get_tag() == TOK_CHAR) {
+            a_char = true;
+        }
+        if (n->get_kid(i)->get_tag() == TOK_UNSIGNED) {
+            sign = 1;
+        }
+        if (n->get_kid(i)->get_tag() == TOK_SIGNED) {
+            sign = 2;
+        }
     }
-    BasicTypeKind kind;
+
+
+
+    // if long or short specify type
+    BasicTypeKind kind = BasicTypeKind::INT;
     switch (type) {
         case 0:
-            kind = BasicTypeKind::INT;
             break;
         case 1:
             kind = BasicTypeKind::SHORT;
@@ -118,9 +133,42 @@ void SemanticAnalysis::visit_basic_type(Node *n) {
         case 2:
             kind = BasicTypeKind::LONG;
             break;
+        default:
+            if (sign == 0) {
+                SemanticError::raise(n->get_loc(), "Invalid Basic Type");
+            }
     }
-    std::shared_ptr<Type> p(new BasicType(kind, sign));
-    n->set_type(p);
+
+
+    // if it's a char, make sure it's not long or short
+    if (a_char) {
+        if (type != 0) {
+            SemanticError::raise(n->get_loc(), "Cannot specify long or short with char");
+        }
+        else {
+            kind = BasicTypeKind::CHAR;
+        }
+    }
+
+    std::shared_ptr<Type> p(new BasicType(kind, is_signed(sign)));
+
+    if (n->get_kid(0)->get_tag() == TOK_VOLATILE) {
+        std::shared_ptr<QualifiedType> sub(new QualifiedType(p, TypeQualifier::VOLATILE));
+        n->set_type(sub);
+    } else if (n->get_kid(0)->get_tag() == TOK_CONST) {
+        std::shared_ptr<QualifiedType> sub(new QualifiedType(p, TypeQualifier::CONST));
+        n->set_type(sub);
+    } else {
+        n->set_type(p);
+
+    }
+}
+
+bool SemanticAnalysis::is_signed(int sign) {
+    if (sign == 1) {
+        return false;
+    }
+    return true;
 }
 
 void SemanticAnalysis::visit_function_definition(Node *n) {
@@ -137,6 +185,9 @@ void SemanticAnalysis::define_parameters(Node *n) {
     std::shared_ptr<Type> params = n->get_kid(0)->get_type();
     for (unsigned i = 0; i < params->get_num_members(); i++) {
         Member param = params->get_member(i);
+        if (m_cur_symtab->has_symbol_local(param.get_name())) {
+            SemanticError::raise(n->get_loc(), "Cannot have 2 params of the same name");
+        }
         m_cur_symtab->define(SymbolKind::VARIABLE, param.get_name(), param.get_type());
     }
 }
@@ -155,7 +206,9 @@ void SemanticAnalysis::visit_function_declaration(Node *n) {
         n->get_kid(0)->get_type()->add_member(*mem);
     }
 
-
+    if (m_cur_symtab->has_symbol_local(n->get_kid(1)->get_str())) {
+        SemanticError::raise(n->get_loc(), "Function with same name declared in same scope");
+    }
     m_cur_symtab->declare(SymbolKind::FUNCTION, n->get_kid(1)->get_str(), n->get_kid(0)->get_type());
 }
 
@@ -220,13 +273,8 @@ void SemanticAnalysis::visit_literal_value(Node *n) {
     // TODO: implement
 }
 
-int SemanticAnalysis::search_for_tag(Node * n, BasicTypeKind type) {
-    for (unsigned i = 0; i < n->get_num_kids(); i++) {
-        if (static_cast<BasicTypeKind>(n->get_kid(i)->get_tag()) == type) {
-            return i;
-        }
-    }
-    return -1;
+void SemanticAnalysis::visit_return_expression_statement(Node *n) {
+    //TODO: implement
 }
 
 void SemanticAnalysis::enter_scope() {

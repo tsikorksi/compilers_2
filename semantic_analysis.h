@@ -39,15 +39,21 @@ public:
 
 private:
   // TODO: add helper functions
-    static int search_for_tag(Node *n, BasicTypeKind type);
 
     void enter_scope();
 
     void leave_scope();
 
-    static void type_switcher(Node *declare, Node *type);
+    void type_switcher(Node *declare, Node *type);
 
     void define_parameters(Node *n);
+
+    void visit_return_expression_statement(Node *n);
+
+    void visit_pointer_declarator(Node *n);
+
+    static bool is_signed(int sign);
+
 };
 
 #endif // SEMANTIC_ANALYSIS_H
