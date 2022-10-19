@@ -133,10 +133,7 @@ void SemanticAnalysis::visit_basic_type(Node *n) {
         case 2:
             kind = BasicTypeKind::LONG;
             break;
-        default:
-            if (sign == 0) {
-                SemanticError::raise(n->get_loc(), "Invalid Basic Type");
-            }
+        default:;
     }
 
 
