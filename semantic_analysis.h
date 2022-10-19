@@ -46,6 +46,7 @@ private:
 
     void leave_scope();
 
+    static void type_switcher(Node *declare, Node *type);
 };
 
 #endif // SEMANTIC_ANALYSIS_H

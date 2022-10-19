@@ -30,18 +30,28 @@ void SemanticAnalysis::visit_variable_declaration(Node *n) {
     visit(n->get_kid(1));
     for (unsigned i = 0; i < n->get_kid(2)->get_num_kids(); i++) {
         Node * current = n->get_kid(2)->get_kid(i);
-        switch (current->get_tag()) {
-            case AST_NAMED_DECLARATOR:
-                break;
-            case AST_POINTER_DECLARATOR:
-                n->get_kid(1)->make_pointer();
-                break;
-            case AST_ARRAY_DECLARATOR:
-                n->get_kid(1)->make_array(stoi(current->get_kid(1)->get_str()));
-                current->get_kid(0)->set_str(current->get_kid(0)->get_kid(0)->get_str());
-        }
-        std::shared_ptr<Type> p = n->get_kid(1)->get_type();
+        type_switcher(current ,n->get_kid(1));
+        std::shared_ptr<Type> p = current->get_type();
         m_cur_symtab->define(SymbolKind::VARIABLE,current->get_kid(0)->get_str(),p);
+    }
+}
+
+void SemanticAnalysis::type_switcher(Node *declare, Node *type) {
+    switch (declare->get_tag()) {
+        case AST_NAMED_DECLARATOR:
+            declare->set_type(type->get_type());
+            break;
+        case AST_POINTER_DECLARATOR:
+            declare->set_type(type->get_type());
+            declare->make_pointer();
+            declare->get_kid(0)->set_str(declare->get_kid(0)->get_kid(0)->get_str());
+            break;
+
+        case AST_ARRAY_DECLARATOR:
+            declare->set_type(type->get_type());
+            declare->make_array(stoi(declare->get_kid(1)->get_str()));
+            declare->get_kid(0)->set_str(declare->get_kid(0)->get_kid(0)->get_str());
+            break;
     }
 }
 
@@ -131,6 +141,7 @@ void SemanticAnalysis::visit_function_declaration(Node *n) {
 void SemanticAnalysis::visit_function_parameter(Node *n) {
     // Get type
     visit(n->get_kid(0));
+    type_switcher(n->get_kid(1), n->get_kid(0));
     n->set_str(n->get_kid(1)->get_kid(0)->get_str());
     n->set_type(n->get_kid(0)->get_type());
 
