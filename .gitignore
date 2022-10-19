@@ -13,3 +13,5 @@
 /ast_visitor.cpp
 /ast.cpp
 /fall2022-tests/
+/.idea/vcs.xml
+/test
