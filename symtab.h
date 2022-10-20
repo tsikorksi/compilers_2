@@ -95,6 +95,8 @@ public:
     // a return statement, to make sure that the value returned is
     // assignment-compatible with the function's return type.
     const Type *get_fn_type() const;
+    Symbol *get_symbol(unsigned i) const;
+
 
 private:
     void add_symbol(Symbol *sym);

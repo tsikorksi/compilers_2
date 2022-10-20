@@ -54,7 +54,7 @@ private:
 
     static bool is_signed(int sign);
 
-    void visit_assign(Node *n);
+    static void visit_assign(Node *n);
 
     void visit_math(Node *n);
 };

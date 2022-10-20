@@ -54,6 +54,8 @@ public:
     void make_pointer();
 
     void make_array(unsigned int size);
+
+    void un_pointer();
 };
 
 #endif // NODE_BASE_H

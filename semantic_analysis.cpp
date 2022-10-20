@@ -178,9 +178,8 @@ void SemanticAnalysis::visit_function_definition(Node *n) {
     visit_function_declaration(n);
     enter_scope();
     define_parameters(n);
-    enter_scope();
+    // Statement list
     visit(n->get_kid(3));
-    leave_scope();
     leave_scope();
 }
 
@@ -225,15 +224,33 @@ void SemanticAnalysis::visit_function_parameter(Node *n) {
 }
 
 void SemanticAnalysis::visit_statement_list(Node *n) {
+    enter_scope();
     visit_children(n);
+    leave_scope();
 }
 
 void SemanticAnalysis::visit_struct_type_definition(Node *n) {
-    // TODO: implement
+    std::string name = n->get_kid(0)->get_str();
+    std::shared_ptr<Type> struct_type(new StructType(name));
+
+    m_cur_symtab->define(SymbolKind::TYPE, "struct " + name, struct_type);
+    enter_scope();
+    Node * fields = n->get_kid(1);
+    for (unsigned i = 0; i < fields->get_num_kids(); i++) {
+        visit(fields->get_kid(i));
+        Symbol * sym = m_cur_symtab->get_symbol(i);
+        Member mem(sym->get_name(), sym->get_type());
+        struct_type->add_member(mem);
+    }
+
+    leave_scope();
 }
 
 void SemanticAnalysis::visit_binary_expression(Node *n) {
     // visit left
+    if (n->get_kid(1)->get_tag() == AST_BINARY_EXPRESSION) {
+        SemanticError::raise(n->get_loc(), "Tried to assign to non-lvalue");
+    }
     visit(n->get_kid(1));
     // visit right
     visit(n->get_kid(2));
@@ -252,20 +269,36 @@ void SemanticAnalysis::visit_binary_expression(Node *n) {
 }
 
 void SemanticAnalysis::visit_assign(Node *n) {
+    std::shared_ptr<Type> lhs = n->get_kid(1)->get_type();
+    std::shared_ptr<Type> rhs = n->get_kid(2)->get_type();
     if (!n->get_kid(1)->has_symbol()) {
-        SemanticError::raise(n->get_loc(), "Binary expression assigning to non variable");
+        SemanticError::raise(n->get_loc(), "Tried to assign to non variable");
     }
-    if (n->get_kid(1)->get_type()->is_const()) {
+    if (rhs->is_volatile() && !lhs->is_volatile()) {
+        SemanticError::raise(n->get_loc(), "Tried to assign volatile variable to non-volatile variable");
+    }
+    if (lhs->is_const()) {
         SemanticError::raise(n->get_loc(), "Tried to assign value to const variable");
     }
-    if (n->get_kid(1)->get_type()->is_pointer() && !n->get_kid(2)->get_type()->is_pointer()) {
-        SemanticError::raise(n->get_loc(), "Tried to assign non pointer to pointer");
+    if (lhs->is_array()) {
+        SemanticError::raise(n->get_loc(), "Tried to assign to array");
     }
-    if (n->get_kid(1)->get_type()->is_integral() && !n->get_kid(2)->get_type()->is_integral()) {
+    if (lhs->is_pointer()) {
+        if (!rhs->is_pointer()) {
+            SemanticError::raise(n->get_loc(), "Tried to assign non pointer to pointer");
+        }
+
+        if (rhs->get_base_type()->is_const()) {
+            SemanticError::raise(n->get_loc(), "Tried to assign const to non-const variable");
+        }
+
+    }
+
+    if (lhs->is_integral() && !rhs->is_integral()) {
         SemanticError::raise(n->get_loc(), "Tried to assign non integer to integer");
     }
     // annotate with type of result
-    n->set_type(n->get_kid(1)->get_type());
+    n->set_type(lhs);
 
 }
 
@@ -277,6 +310,9 @@ void SemanticAnalysis::visit_unary_expression(Node *n) {
     visit(n->get_kid(1));
     n->set_type(n->get_kid(1)->get_type());
     if (n->get_kid(0)->get_tag() == TOK_AMPERSAND) {
+        if (n->get_kid(1)->get_tag() == AST_LITERAL_VALUE) {
+            SemanticError::raise(n->get_loc(), "Tried to dereference a literal");
+        }
         n->make_pointer();
     }
 }
@@ -294,7 +330,25 @@ void SemanticAnalysis::visit_cast_expression(Node *n) {
 }
 
 void SemanticAnalysis::visit_function_call_expression(Node *n) {
-    // TODO: implement
+    // visit name
+    visit(n->get_kid(0));
+    Symbol *func = m_cur_symtab->lookup_recursive(n->get_kid(0)->get_symbol()->get_name());
+    if (func == nullptr) {
+        SemanticError::raise(n->get_loc(), "Function %s does not exist", n->get_kid(0)->get_symbol()->get_name().c_str());
+    }
+    // visit args
+    if (func->get_type()->get_num_members() != n->get_kid(1)->get_num_kids()) {
+        SemanticError::raise(n->get_loc(), "Number of arguments does not match number of parameters");
+    }
+    for (unsigned i = 0; i < func->get_type()->get_num_members(); i++) {
+        visit(n->get_kid(1)->get_kid(i));
+        // Comparing symbol member type to regular type doesn't work, even when the BaseTypeKind is the same
+        if (!n->get_kid(1)->get_kid(i)->get_type()->is_same(func->get_type()->get_member(i).get_type()->get_unqualified_type()) ) {
+            std::cout << n->get_kid(1)->get_kid(i)->get_type()->as_str() << " " << func->get_type()->get_member(i).get_type()->as_str()  << std::endl;
+            SemanticError::raise(n->get_loc(), "Argument type does not match parameter type");
+        }
+    }
+    n->set_type(func->get_type()->get_base_type());
 }
 
 void SemanticAnalysis::visit_field_ref_expression(Node *n) {
@@ -306,7 +360,11 @@ void SemanticAnalysis::visit_indirect_field_ref_expression(Node *n) {
 }
 
 void SemanticAnalysis::visit_array_element_ref_expression(Node *n) {
-    // TODO: implement
+    visit(n->get_kid(0));
+    n->set_type(n->get_kid(0)->get_type());
+    if (n->get_type()->is_pointer()) {
+        n->un_pointer();
+    }
 }
 
 void SemanticAnalysis::visit_variable_ref(Node *n) {

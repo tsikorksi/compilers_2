@@ -74,6 +74,11 @@ void NodeBase::make_pointer() {
     assert(m_type->is_pointer());
 }
 
+void NodeBase::un_pointer() {
+    assert(m_type->is_pointer());
+    m_type = m_type->get_base_type();
+}
+
 void NodeBase::make_array(unsigned size) {
     m_type = std::make_shared<ArrayType>(m_type, size);
     assert(m_type->is_array());

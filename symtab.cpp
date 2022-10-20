@@ -81,6 +81,10 @@ Symbol *SymbolTable::lookup_local(const std::string &name) const {
   return (i != m_lookup.end()) ? m_symbols[i->second] : nullptr;
 }
 
+Symbol *SymbolTable::get_symbol(unsigned i) const {
+    return m_symbols.at(i);
+}
+
 Symbol *SymbolTable::declare(SymbolKind sym_kind, const std::string &name, const std::shared_ptr<Type> &type) {
   Symbol *sym = new Symbol(sym_kind, name, type, this, true);
   add_symbol(sym);
