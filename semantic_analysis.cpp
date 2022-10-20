@@ -255,17 +255,10 @@ void SemanticAnalysis::visit_binary_expression(Node *n) {
     // visit right
     visit(n->get_kid(2));
 
-    switch (n->get_kid(0)->get_tag()) {
-        case TOK_ASSIGN:
+    if (n->get_kid(0)->get_tag() == TOK_ASSIGN) {
             visit_assign(n);
-            break;
-        case TOK_MINUS:
-        case TOK_DIVIDE:
-        case TOK_ASTERISK:
-        case TOK_PLUS:
-            visit_math(n);
-            break;
     }
+    n->set_type( n->get_kid(1)->get_type());
 }
 
 void SemanticAnalysis::visit_assign(Node *n) {
@@ -298,11 +291,7 @@ void SemanticAnalysis::visit_assign(Node *n) {
         SemanticError::raise(n->get_loc(), "Tried to assign non integer to integer");
     }
     // annotate with type of result
-    n->set_type(lhs);
-
-}
-
-void SemanticAnalysis::visit_math(Node *n) {
+    ;
 
 }
 
