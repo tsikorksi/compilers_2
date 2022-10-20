@@ -54,6 +54,9 @@ private:
 
     static bool is_signed(int sign);
 
+    void visit_assign(Node *n);
+
+    void visit_math(Node *n);
 };
 
 #endif // SEMANTIC_ANALYSIS_H

@@ -72,6 +72,10 @@ bool SymbolTable::has_symbol_local(const std::string &name) const {
   return lookup_local(name) != nullptr;
 }
 
+bool SymbolTable::has_symbol_recursive(const std::string &name) const {
+    return lookup_recursive(name) != nullptr;
+}
+
 Symbol *SymbolTable::lookup_local(const std::string &name) const {
   auto i = m_lookup.find(name);
   return (i != m_lookup.end()) ? m_symbols[i->second] : nullptr;

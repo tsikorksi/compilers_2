@@ -66,14 +66,17 @@ std::shared_ptr<Type> NodeBase::get_type() const {
 
 void NodeBase::make_function() {
     m_type = std::make_shared<FunctionType>(m_type);
+    assert(m_type->is_function());
 }
 
 void NodeBase::make_pointer() {
     m_type = std::make_shared<PointerType>(m_type);
+    assert(m_type->is_pointer());
 }
 
 void NodeBase::make_array(unsigned size) {
     m_type = std::make_shared<ArrayType>(m_type, size);
+    assert(m_type->is_array());
 }
 
 

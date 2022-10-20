@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <utility>
 #include <map>
+#include <iostream>
 #include "grammar_symbols.h"
 #include "parse.tab.h"
 #include "node.h"
@@ -236,10 +237,48 @@ void SemanticAnalysis::visit_binary_expression(Node *n) {
     visit(n->get_kid(1));
     // visit right
     visit(n->get_kid(2));
+
+    switch (n->get_kid(0)->get_tag()) {
+        case TOK_ASSIGN:
+            visit_assign(n);
+            break;
+        case TOK_MINUS:
+        case TOK_DIVIDE:
+        case TOK_ASTERISK:
+        case TOK_PLUS:
+            visit_math(n);
+            break;
+    }
+}
+
+void SemanticAnalysis::visit_assign(Node *n) {
+    if (!n->get_kid(1)->has_symbol()) {
+        SemanticError::raise(n->get_loc(), "Binary expression assigning to non variable");
+    }
+    if (n->get_kid(1)->get_type()->is_const()) {
+        SemanticError::raise(n->get_loc(), "Tried to assign value to const variable");
+    }
+    if (n->get_kid(1)->get_type()->is_pointer() && !n->get_kid(2)->get_type()->is_pointer()) {
+        SemanticError::raise(n->get_loc(), "Tried to assign non pointer to pointer");
+    }
+    if (n->get_kid(1)->get_type()->is_integral() && !n->get_kid(2)->get_type()->is_integral()) {
+        SemanticError::raise(n->get_loc(), "Tried to assign non integer to integer");
+    }
+    // annotate with type of result
+    n->set_type(n->get_kid(1)->get_type());
+
+}
+
+void SemanticAnalysis::visit_math(Node *n) {
+
 }
 
 void SemanticAnalysis::visit_unary_expression(Node *n) {
-    // TODO: implement
+    visit(n->get_kid(1));
+    n->set_type(n->get_kid(1)->get_type());
+    if (n->get_kid(0)->get_tag() == TOK_AMPERSAND) {
+        n->make_pointer();
+    }
 }
 
 void SemanticAnalysis::visit_postfix_expression(Node *n) {
@@ -272,10 +311,9 @@ void SemanticAnalysis::visit_array_element_ref_expression(Node *n) {
 
 void SemanticAnalysis::visit_variable_ref(Node *n) {
     //  annotate with symbol
-    if (!m_cur_symtab->has_symbol_local(n->get_kid(0)->get_str())) {
+    if (!m_cur_symtab->has_symbol_recursive(n->get_kid(0)->get_str())) {
         SemanticError::raise(n->get_loc(), "Variable %s does not exist in Symbol Table", n->get_kid(0)->get_str().c_str());
     }
-    n->set_type(n->get_kid(0)->get_type());
     n->set_symbol(m_cur_symtab->lookup_recursive(n->get_kid(0)->get_str()));
 }
 
