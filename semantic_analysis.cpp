@@ -18,7 +18,8 @@ SemanticAnalysis::SemanticAnalysis()
 SemanticAnalysis::~SemanticAnalysis() = default;
 
 void SemanticAnalysis::visit_struct_type(Node *n) {
-    // TODO: implement
+    std::shared_ptr<Type> p = m_cur_symtab->lookup_recursive(n->get_kid(0)->get_str())->get_type();
+    n->set_type(p);
 }
 
 void SemanticAnalysis::visit_union_type(Node *n) {
@@ -255,44 +256,103 @@ void SemanticAnalysis::visit_binary_expression(Node *n) {
     // visit right
     visit(n->get_kid(2));
 
-    if (n->get_kid(0)->get_tag() == TOK_ASSIGN) {
+    switch (n->get_kid(0)->get_tag()) {
+        case TOK_ASSIGN:
             visit_assign(n);
+            break;
+        case TOK_PLUS:
+        case TOK_MINUS:
+        case TOK_DIVIDE:
+        case TOK_ASTERISK:
+            visit_math(n);
+            break;
+        case TOK_LT:
+        case TOK_LTE:
+        case TOK_GT:
+        case TOK_GTE:
+        case TOK_EQUALITY:
+            visit_comparison(n);
+            break;
     }
+    // annotate with type of result
     n->set_type( n->get_kid(1)->get_type());
 }
 
 void SemanticAnalysis::visit_assign(Node *n) {
     std::shared_ptr<Type> lhs = n->get_kid(1)->get_type();
     std::shared_ptr<Type> rhs = n->get_kid(2)->get_type();
-    if (!n->get_kid(1)->has_symbol()) {
-        SemanticError::raise(n->get_loc(), "Tried to assign to non variable");
-    }
-    if (rhs->is_volatile() && !lhs->is_volatile()) {
-        SemanticError::raise(n->get_loc(), "Tried to assign volatile variable to non-volatile variable");
-    }
-    if (lhs->is_const()) {
-        SemanticError::raise(n->get_loc(), "Tried to assign value to const variable");
-    }
-    if (lhs->is_array()) {
-        SemanticError::raise(n->get_loc(), "Tried to assign to array");
-    }
-    if (lhs->is_pointer()) {
-        if (!rhs->is_pointer()) {
-            SemanticError::raise(n->get_loc(), "Tried to assign non pointer to pointer");
-        }
+    std::cout << lhs->as_str() << " " << rhs->as_str() << std::endl;
 
+
+    // Not base types
+    if (!lhs->is_basic() && !rhs->is_basic()) {
+        //std::cout << lhs->get_base_type()->as_str() << " " << rhs->get_base_type()->as_str() << std::endl;
+
+        if (!lhs->get_base_type()->is_volatile() && rhs->get_base_type()->is_volatile()) {
+            SemanticError::raise(n->get_loc(), "Tried to assign volatile variable to non-volatile variable");
+        }
         if (rhs->get_base_type()->is_const()) {
             SemanticError::raise(n->get_loc(), "Tried to assign const to non-const variable");
         }
+        if (lhs->is_pointer() && rhs->is_integral()) {
+            SemanticError::raise(n->get_loc(), "Cannot assign integral to pointer");
+        }
 
+    }
+
+
+    // Not lvalue
+    if (!(n->get_kid(1)->has_symbol() || lhs->is_pointer() || lhs->is_array() || lhs->is_struct() || lhs->is_same(rhs->get_unqualified_type()) )) {
+        SemanticError::raise(n->get_loc(), "Left hand side is not an L-Value");
+    }
+
+    // Const error
+    if (lhs->is_const()) {
+        SemanticError::raise(n->get_loc(), "Tried to assign value to const variable");
+    }
+
+    // Cannot do arr = arr
+    if (lhs->is_array() && rhs->is_array()) {
+        SemanticError::raise(n->get_loc(), "Tried to assign array to array");
+    }
+
+    // bad pointer assignments
+    if (lhs->is_pointer()) {
+        if (!rhs->is_pointer() && !rhs->is_array() && !rhs->is_integral()) {
+            SemanticError::raise(n->get_loc(), "Tried to assign non pointer to pointer");
+        }
     }
 
     if (lhs->is_integral() && !rhs->is_integral()) {
         SemanticError::raise(n->get_loc(), "Tried to assign non integer to integer");
     }
-    // annotate with type of result
-    ;
+}
 
+void SemanticAnalysis::visit_math(Node *n) {
+    std::shared_ptr<Type> lhs = n->get_kid(1)->get_type();
+    std::shared_ptr<Type> rhs = n->get_kid(2)->get_type();
+
+    if (lhs->is_pointer()) {
+        if (rhs->is_pointer()) {
+            SemanticError::raise(n->get_loc(), "Cannot perform arithmetic on 2 pointers");
+        }
+    } else {
+        if (rhs->is_pointer()) {
+            SemanticError::raise(n->get_loc(), "Cannot perform arithmetic on integral with pointer");
+        }
+    }
+}
+
+void SemanticAnalysis::visit_comparison(Node *n) {
+    std::shared_ptr<Type> lhs = n->get_kid(1)->get_type();
+    std::shared_ptr<Type> rhs = n->get_kid(2)->get_type();
+
+    if (lhs->is_pointer() != rhs->is_pointer()) {
+        SemanticError::raise(n->get_loc(), "Tried to compare pointer and non pointer");
+    }
+    if (lhs->is_function() != rhs->is_function()) {
+        SemanticError::raise(n->get_loc(), "Tried to compare function and non function");
+    }
 }
 
 void SemanticAnalysis::visit_unary_expression(Node *n) {
@@ -300,8 +360,10 @@ void SemanticAnalysis::visit_unary_expression(Node *n) {
     n->set_type(n->get_kid(1)->get_type());
     if (n->get_kid(0)->get_tag() == TOK_AMPERSAND) {
         if (n->get_kid(1)->get_tag() == AST_LITERAL_VALUE) {
-            SemanticError::raise(n->get_loc(), "Tried to dereference a literal");
+            SemanticError::raise(n->get_loc(), "Tried to reference a literal");
         }
+        n->make_pointer();
+    } else if (n->get_kid(0)->get_tag() == TOK_ASTERISK) {
         n->make_pointer();
     }
 }
@@ -331,8 +393,10 @@ void SemanticAnalysis::visit_function_call_expression(Node *n) {
     }
     for (unsigned i = 0; i < func->get_type()->get_num_members(); i++) {
         visit(n->get_kid(1)->get_kid(i));
+        std::shared_ptr<Type> arg = n->get_kid(1)->get_kid(i)->get_type();
+        std::shared_ptr<Type> param = func->get_type()->get_member(i).get_type();
         // Comparing symbol member type to regular type doesn't work, even when the BaseTypeKind is the same
-        if (!n->get_kid(1)->get_kid(i)->get_type()->is_same(func->get_type()->get_member(i).get_type()->get_unqualified_type()) ) {
+        if (!(arg->is_integral() == param->is_integral() || arg->is_pointer() == param->is_pointer() || arg->is_array() == param->is_array())) {
             std::cout << n->get_kid(1)->get_kid(i)->get_type()->as_str() << " " << func->get_type()->get_member(i).get_type()->as_str()  << std::endl;
             SemanticError::raise(n->get_loc(), "Argument type does not match parameter type");
         }
@@ -341,7 +405,12 @@ void SemanticAnalysis::visit_function_call_expression(Node *n) {
 }
 
 void SemanticAnalysis::visit_field_ref_expression(Node *n) {
-    // TODO: implement
+    visit(n->get_kid(0));
+    visit(n->get_kid(1));
+
+    if (!n->get_kid(0)->get_type()->is_same(n->get_kid(1)->get_type()->get_unqualified_type())) {
+        SemanticError::raise(n->get_loc(), "Tried to assign wrong type to field of struct");
+    }
 }
 
 void SemanticAnalysis::visit_indirect_field_ref_expression(Node *n) {
@@ -384,7 +453,7 @@ void SemanticAnalysis::visit_literal_value(Node *n) {
 }
 
 void SemanticAnalysis::visit_return_expression_statement(Node *n) {
-    //TODO: implement
+    visit(n->get_kid(0));
 }
 
 void SemanticAnalysis::enter_scope() {

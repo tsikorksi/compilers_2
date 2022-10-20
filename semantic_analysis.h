@@ -56,7 +56,9 @@ private:
 
     static void visit_assign(Node *n);
 
-    void visit_math(Node *n);
+    static void visit_math(Node *n);
+
+    static void visit_comparison(Node *n);
 };
 
 #endif // SEMANTIC_ANALYSIS_H
