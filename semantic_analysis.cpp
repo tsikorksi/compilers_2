@@ -281,7 +281,7 @@ void SemanticAnalysis::visit_binary_expression(Node *n) {
 void SemanticAnalysis::visit_assign(Node *n) {
     std::shared_ptr<Type> lhs = n->get_kid(1)->get_type();
     std::shared_ptr<Type> rhs = n->get_kid(2)->get_type();
-    std::cout << lhs->as_str() << " " << rhs->as_str() << std::endl;
+    //std::cout << lhs->as_str() << " " << rhs->as_str() << std::endl;
 
 
     // Not base types
@@ -297,7 +297,11 @@ void SemanticAnalysis::visit_assign(Node *n) {
         if (lhs->is_pointer() && rhs->is_integral()) {
             SemanticError::raise(n->get_loc(), "Cannot assign integral to pointer");
         }
-
+    }
+    if (!lhs->is_basic() && rhs->is_basic()) {
+        if (!lhs->get_base_type()->is_pointer()) {
+            SemanticError::raise(n->get_loc(), "Cannot assign integral to non-array pointer");
+        }
     }
 
 
@@ -323,9 +327,12 @@ void SemanticAnalysis::visit_assign(Node *n) {
         }
     }
 
+
     if (lhs->is_integral() && !rhs->is_integral()) {
         SemanticError::raise(n->get_loc(), "Tried to assign non integer to integer");
     }
+
+
 }
 
 void SemanticAnalysis::visit_math(Node *n) {
