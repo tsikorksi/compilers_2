@@ -39,6 +39,9 @@ void SemanticAnalysis::visit_variable_declaration(Node *n) {
         std::shared_ptr<Type> p = current->get_type();
 
         // add it to the Symbol Table
+        if (m_cur_symtab->has_symbol_local(current->get_kid(0)->get_str())) {
+            SemanticError::raise(n->get_loc(), "Variable %s already exists", current->get_kid(0)->get_str().c_str());
+        }
         m_cur_symtab->define(SymbolKind::VARIABLE,current->get_kid(0)->get_str(),p);
     }
 }
@@ -86,6 +89,7 @@ void SemanticAnalysis::visit_basic_type(Node *n) {
     for (unsigned i = 0; i < n->get_num_kids(); i++) {
         if (n->get_kid(i)->get_tag() == TOK_VOID) {
             if (n->get_num_kids() == 1) {
+                // void always signed
                 std::shared_ptr<Type> p(new BasicType(BasicTypeKind::VOID, true));
                 n->set_type(p);
                 return;
@@ -149,6 +153,7 @@ void SemanticAnalysis::visit_basic_type(Node *n) {
 
     std::shared_ptr<Type> p(new BasicType(kind, is_signed(sign)));
 
+    // Check for Qualified types which are always first
     if (n->get_kid(0)->get_tag() == TOK_VOLATILE) {
         std::shared_ptr<QualifiedType> sub(new QualifiedType(p, TypeQualifier::VOLATILE));
         n->set_type(sub);
@@ -227,7 +232,10 @@ void SemanticAnalysis::visit_struct_type_definition(Node *n) {
 }
 
 void SemanticAnalysis::visit_binary_expression(Node *n) {
-    // TODO: implement
+    // visit left
+    visit(n->get_kid(1));
+    // visit right
+    visit(n->get_kid(2));
 }
 
 void SemanticAnalysis::visit_unary_expression(Node *n) {
@@ -263,11 +271,31 @@ void SemanticAnalysis::visit_array_element_ref_expression(Node *n) {
 }
 
 void SemanticAnalysis::visit_variable_ref(Node *n) {
-    // TODO: implement
+    //  annotate with symbol
+    if (!m_cur_symtab->has_symbol_local(n->get_kid(0)->get_str())) {
+        SemanticError::raise(n->get_loc(), "Variable %s does not exist in Symbol Table", n->get_kid(0)->get_str().c_str());
+    }
+    n->set_type(n->get_kid(0)->get_type());
+    n->set_symbol(m_cur_symtab->lookup_recursive(n->get_kid(0)->get_str()));
 }
 
 void SemanticAnalysis::visit_literal_value(Node *n) {
-    // TODO: implement
+    BasicTypeKind kind = BasicTypeKind::CHAR;
+    switch (n->get_kid(0)->get_tag()) {
+        case TOK_INT_LIT:
+            kind = BasicTypeKind::INT;
+        case TOK_CHAR_LIT: {
+            std::shared_ptr<Type> p(new BasicType(kind, true));
+            n->set_type(p);
+            break;
+        }
+        case TOK_STR_LIT:{
+            std::shared_ptr<Type> p(new BasicType(kind, true));
+            n->set_type(p);
+            n->make_pointer();
+        }
+
+    }
 }
 
 void SemanticAnalysis::visit_return_expression_statement(Node *n) {
