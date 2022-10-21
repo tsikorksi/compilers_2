@@ -1,5 +1,6 @@
 #include <cassert>
 #include <cstdio>
+#include <utility>
 #include "symtab.h"
 
 ////////////////////////////////////////////////////////////////////////
@@ -45,10 +46,12 @@ bool Symbol::is_defined() const {
 // SymbolTable implementation
 ////////////////////////////////////////////////////////////////////////
 
-SymbolTable::SymbolTable(SymbolTable *parent)
+SymbolTable::SymbolTable(SymbolTable *parent, std::string name)
   : m_parent(parent)
   , m_has_params(false) {
+    m_scope_name = std::move(name);
 }
+
 
 SymbolTable::~SymbolTable() {
   for (auto i = m_symbols.begin(); i != m_symbols.end(); ++i) {
@@ -58,6 +61,10 @@ SymbolTable::~SymbolTable() {
 
 SymbolTable *SymbolTable::get_parent() const {
   return m_parent;
+}
+
+std::string SymbolTable::get_name() {
+    return m_scope_name;
 }
 
 bool SymbolTable::has_params() const {
@@ -160,4 +167,8 @@ int SymbolTable::get_depth() const {
   }
 
   return depth;
+}
+
+unsigned SymbolTable::get_num_symbols() const {
+    return m_symbols.size();
 }

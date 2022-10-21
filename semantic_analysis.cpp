@@ -11,7 +11,7 @@
 #include "semantic_analysis.h"
 
 SemanticAnalysis::SemanticAnalysis()
-        : m_global_symtab(new SymbolTable(nullptr)) {
+        : m_global_symtab(new SymbolTable(nullptr, "root")) {
     m_cur_symtab = m_global_symtab;
 }
 
@@ -39,7 +39,7 @@ void SemanticAnalysis::visit_variable_declaration(Node *n) {
         // annotate it with its type
         if (!n->get_kid(1)->get_type()->is_struct()) {
             type_switcher(current ,n->get_kid(1));
-             p = current->get_type();
+            p = current->get_type();
         } else {
             p =  n->get_kid(1)->get_type();
         }
@@ -181,7 +181,7 @@ bool SemanticAnalysis::is_signed(int sign) {
 
 void SemanticAnalysis::visit_function_definition(Node *n) {
     visit_function_declaration(n);
-    enter_scope();
+    enter_scope(n->get_kid(1)->get_str());
     define_parameters(n);
     // Statement list
     visit(n->get_kid(3));
@@ -229,7 +229,7 @@ void SemanticAnalysis::visit_function_parameter(Node *n) {
 }
 
 void SemanticAnalysis::visit_statement_list(Node *n) {
-    enter_scope();
+    enter_scope(m_cur_symtab->get_name());
     visit_children(n);
     leave_scope();
 }
@@ -239,10 +239,13 @@ void SemanticAnalysis::visit_struct_type_definition(Node *n) {
     std::shared_ptr<Type> struct_type(new StructType(name));
 
     m_cur_symtab->define(SymbolKind::TYPE, "struct " + name, struct_type);
-    enter_scope();
+    enter_scope("struct");
     Node * fields = n->get_kid(1);
     for (unsigned i = 0; i < fields->get_num_kids(); i++) {
         visit(fields->get_kid(i));
+
+    }
+    for (unsigned i = 0; i < m_cur_symtab->get_num_symbols(); i++) {
         Symbol * sym = m_cur_symtab->get_symbol(i);
         Member mem(sym->get_name(), sym->get_type());
         struct_type->add_member(mem);
@@ -253,15 +256,15 @@ void SemanticAnalysis::visit_struct_type_definition(Node *n) {
 
 void SemanticAnalysis::visit_binary_expression(Node *n) {
     // visit left
-    if (n->get_kid(1)->get_tag() == AST_BINARY_EXPRESSION || n->get_kid(1)->get_tag()  == AST_LITERAL_VALUE) {
-        SemanticError::raise(n->get_loc(), "Tried to assign to non-lvalue");
-    }
     visit(n->get_kid(1));
     // visit right
     visit(n->get_kid(2));
 
     switch (n->get_kid(0)->get_tag()) {
         case TOK_ASSIGN:
+            if (n->get_kid(1)->get_tag() == AST_BINARY_EXPRESSION || n->get_kid(1)->get_tag()  == AST_LITERAL_VALUE) {
+                SemanticError::raise(n->get_loc(), "Tried to assign to non-lvalue");
+            }
             visit_assign(n);
             break;
         case TOK_PLUS:
@@ -275,6 +278,8 @@ void SemanticAnalysis::visit_binary_expression(Node *n) {
         case TOK_GT:
         case TOK_GTE:
         case TOK_EQUALITY:
+        case TOK_LOGICAL_AND:
+        case TOK_LOGICAL_OR:
             visit_comparison(n);
             break;
     }
@@ -411,7 +416,7 @@ void SemanticAnalysis::visit_function_call_expression(Node *n) {
         std::shared_ptr<Type> param = func->get_type()->get_member(i).get_type();
         // Comparing symbol member type to regular type doesn't work, even when the BaseTypeKind is the same
         if (!(arg->is_integral() == param->is_integral() || arg->is_pointer() == param->is_pointer() || arg->is_array() == param->is_array())) {
-            std::cout << n->get_kid(1)->get_kid(i)->get_type()->as_str() << " " << func->get_type()->get_member(i).get_type()->as_str()  << std::endl;
+            //std::cout << n->get_kid(1)->get_kid(i)->get_type()->as_str() << " " << func->get_type()->get_member(i).get_type()->as_str()  << std::endl;
             SemanticError::raise(n->get_loc(), "Argument type does not match parameter type");
         }
     }
@@ -420,11 +425,15 @@ void SemanticAnalysis::visit_function_call_expression(Node *n) {
 
 void SemanticAnalysis::visit_field_ref_expression(Node *n) {
     visit(n->get_kid(0));
-    visit(n->get_kid(1));
 
-    if (!n->get_kid(0)->get_type()->is_same(n->get_kid(1)->get_type()->get_unqualified_type())) {
-        SemanticError::raise(n->get_loc(), "Tried to assign wrong type to field of struct");
-    }
+    std::shared_ptr<Type> var = n->get_kid(0)->get_type();
+    //if (!var->is_same(n->get_kid(1)->get_type()->get_unqualified_type())) {
+    //    SemanticError::raise(n->get_loc(), "Tried to assign wrong type to field of struct");
+    //}
+
+    std::shared_ptr<Type> field_type = var->find_member(n->get_kid(1)->get_str())->get_type();
+
+    n->set_type(field_type);
 }
 
 void SemanticAnalysis::visit_indirect_field_ref_expression(Node *n) {
@@ -468,10 +477,15 @@ void SemanticAnalysis::visit_literal_value(Node *n) {
 
 void SemanticAnalysis::visit_return_expression_statement(Node *n) {
     visit(n->get_kid(0));
+    std::shared_ptr<Type> return_type = m_cur_symtab->lookup_recursive(m_cur_symtab->get_name())->get_type()->get_base_type();
+    if (!return_type->is_same(n->get_kid(0)->get_type().get())) {
+        //std::cout << n->get_kid(0)->get_type()->as_str()  << " " << return_type->as_str() << std::endl;
+        SemanticError::raise(n->get_loc(), "Return type does not match function declaration");
+    }
 }
 
-void SemanticAnalysis::enter_scope() {
-    auto *scope = new SymbolTable(m_cur_symtab);
+void SemanticAnalysis::enter_scope(std::string name) {
+    auto *scope = new SymbolTable(m_cur_symtab, std::move(name));
     m_cur_symtab = scope;
 }
 

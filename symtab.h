@@ -46,6 +46,7 @@ public:
 class SymbolTable {
 private:
     SymbolTable *m_parent;
+    std::string m_scope_name;
     std::vector<Symbol *> m_symbols;
     std::map<std::string, unsigned> m_lookup;
     bool m_has_params; // true if this symbol table contains function parameters
@@ -56,10 +57,12 @@ private:
     SymbolTable &operator=(const SymbolTable &);
 
 public:
-    SymbolTable(SymbolTable *parent);
+    SymbolTable(SymbolTable *parent, std::string name);
     ~SymbolTable();
 
     SymbolTable *get_parent() const;
+    std::string get_name();
+
 
     bool has_params() const;
     void set_has_params(bool has_params);
@@ -69,6 +72,7 @@ public:
     // in the current scope before calling declare or define.
     bool has_symbol_local(const std::string &name) const;
     bool has_symbol_recursive(const std::string &name) const;
+    unsigned get_num_symbols() const;
 
     Symbol *lookup_local(const std::string &name) const;
     Symbol *declare(SymbolKind sym_kind, const std::string &name, const std::shared_ptr<Type> &type);

@@ -40,7 +40,7 @@ public:
 private:
   // TODO: add helper functions
 
-    void enter_scope();
+    void enter_scope(std::string name);
 
     void leave_scope();
 
