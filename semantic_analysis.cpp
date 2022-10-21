@@ -18,7 +18,7 @@ SemanticAnalysis::SemanticAnalysis()
 SemanticAnalysis::~SemanticAnalysis() = default;
 
 void SemanticAnalysis::visit_struct_type(Node *n) {
-    std::shared_ptr<Type> p = m_cur_symtab->lookup_recursive(n->get_kid(0)->get_str())->get_type();
+    std::shared_ptr<Type> p = m_cur_symtab->lookup_recursive("struct " + n->get_kid(0)->get_str())->get_type();
     n->set_type(p);
 }
 
@@ -27,18 +27,22 @@ void SemanticAnalysis::visit_union_type(Node *n) {
 }
 
 void SemanticAnalysis::visit_variable_declaration(Node *n) {
-    // visit basic type
+    // visit type
     visit(n->get_kid(1));
 
     // iterate through declarators
     for (unsigned i = 0; i < n->get_kid(2)->get_num_kids(); i++) {
 
         // the current declarator
+        std::shared_ptr<Type> p;
         Node * current = n->get_kid(2)->get_kid(i);
-
         // annotate it with its type
-        type_switcher(current ,n->get_kid(1));
-        std::shared_ptr<Type> p = current->get_type();
+        if (!n->get_kid(1)->get_type()->is_struct()) {
+            type_switcher(current ,n->get_kid(1));
+             p = current->get_type();
+        } else {
+            p =  n->get_kid(1)->get_type();
+        }
 
         // add it to the Symbol Table
         if (m_cur_symtab->has_symbol_local(current->get_kid(0)->get_str())) {
@@ -249,7 +253,7 @@ void SemanticAnalysis::visit_struct_type_definition(Node *n) {
 
 void SemanticAnalysis::visit_binary_expression(Node *n) {
     // visit left
-    if (n->get_kid(1)->get_tag() == AST_BINARY_EXPRESSION) {
+    if (n->get_kid(1)->get_tag() == AST_BINARY_EXPRESSION || n->get_kid(1)->get_tag()  == AST_LITERAL_VALUE) {
         SemanticError::raise(n->get_loc(), "Tried to assign to non-lvalue");
     }
     visit(n->get_kid(1));
@@ -299,7 +303,7 @@ void SemanticAnalysis::visit_assign(Node *n) {
         }
     }
     if (!lhs->is_basic() && rhs->is_basic()) {
-        if (!lhs->get_base_type()->is_pointer()) {
+        if (!lhs->get_base_type()->is_pointer() && !lhs->is_array()) {
             SemanticError::raise(n->get_loc(), "Cannot assign integral to non-array pointer");
         }
     }
@@ -358,6 +362,9 @@ void SemanticAnalysis::visit_comparison(Node *n) {
         SemanticError::raise(n->get_loc(), "Tried to compare pointer and non pointer");
     }
     if (lhs->is_function() != rhs->is_function()) {
+        SemanticError::raise(n->get_loc(), "Tried to compare function and non function");
+    }
+    if (lhs->is_struct() != rhs->is_struct()) {
         SemanticError::raise(n->get_loc(), "Tried to compare function and non function");
     }
 }
