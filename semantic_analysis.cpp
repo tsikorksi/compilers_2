@@ -440,6 +440,7 @@ void SemanticAnalysis::visit_function_call_expression(Node *n) {
 }
 
 void SemanticAnalysis::visit_field_ref_expression(Node *n) {
+    //TODO: move type up correctly
     visit(n->get_kid(0));
 
     std::shared_ptr<Type> var = n->get_kid(0)->get_type();
@@ -452,6 +453,7 @@ void SemanticAnalysis::visit_field_ref_expression(Node *n) {
 }
 
 void SemanticAnalysis::visit_indirect_field_ref_expression(Node *n) {
+    //TODO: move type up correctly
     visit(n->get_kid(0));
     n->set_type(n->get_kid(0)->get_type());
     if (n->get_type()->is_pointer()) {
