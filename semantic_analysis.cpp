@@ -18,8 +18,12 @@ SemanticAnalysis::SemanticAnalysis()
 SemanticAnalysis::~SemanticAnalysis() = default;
 
 void SemanticAnalysis::visit_struct_type(Node *n) {
-    std::shared_ptr<Type> p = m_cur_symtab->lookup_recursive("struct " + n->get_kid(0)->get_str())->get_type();
-    n->set_type(p);
+    if (m_cur_symtab->has_symbol_recursive("struct " + n->get_kid(0)->get_str())) {
+        std::shared_ptr<Type> p = m_cur_symtab->lookup_recursive("struct " + n->get_kid(0)->get_str())->get_type();
+        n->set_type(p);
+    } else {
+        SemanticError::raise(n->get_loc(), "Unknown Struct");
+    }
 }
 
 void SemanticAnalysis::visit_union_type(Node *n) {
@@ -37,12 +41,12 @@ void SemanticAnalysis::visit_variable_declaration(Node *n) {
         std::shared_ptr<Type> p;
         Node * current = n->get_kid(2)->get_kid(i);
         // annotate it with its type
-        if (!n->get_kid(1)->get_type()->is_struct()) {
-            type_switcher(current ,n->get_kid(1));
-            p = current->get_type();
-        } else {
-            p =  n->get_kid(1)->get_type();
-        }
+        //if (!n->get_kid(1)->get_type()->is_struct()) {
+        type_switcher(current ,n->get_kid(1));
+        p = current->get_type();
+        //} else {
+        //    p =  n->get_kid(1)->get_type();
+        //}
 
         // add it to the Symbol Table
         if (m_cur_symtab->has_symbol_local(current->get_kid(0)->get_str())) {
@@ -236,6 +240,9 @@ void SemanticAnalysis::visit_statement_list(Node *n) {
 
 void SemanticAnalysis::visit_struct_type_definition(Node *n) {
     std::string name = n->get_kid(0)->get_str();
+    if(m_cur_symtab->has_symbol_recursive("struct " + name)) {
+        SemanticError::raise(n->get_loc(), "Struct already defined");
+    }
     std::shared_ptr<Type> struct_type(new StructType(name));
 
     m_cur_symtab->define(SymbolKind::TYPE, "struct " + name, struct_type);
@@ -290,12 +297,13 @@ void SemanticAnalysis::visit_binary_expression(Node *n) {
 void SemanticAnalysis::visit_assign(Node *n) {
     std::shared_ptr<Type> lhs = n->get_kid(1)->get_type();
     std::shared_ptr<Type> rhs = n->get_kid(2)->get_type();
-    //std::cout << lhs->as_str() << " " << rhs->as_str() << std::endl;
+    std::cout << lhs->as_str() << " " << rhs->as_str() << std::endl;
+
 
 
     // Not base types
     if (!lhs->is_basic() && !rhs->is_basic()) {
-        //std::cout << lhs->get_base_type()->as_str() << " " << rhs->get_base_type()->as_str() << std::endl;
+        std::cout << lhs->get_base_type()->as_str() << " " << rhs->get_base_type()->as_str() << std::endl;
 
         if (!lhs->get_base_type()->is_volatile() && rhs->get_base_type()->is_volatile()) {
             SemanticError::raise(n->get_loc(), "Tried to assign volatile variable to non-volatile variable");
@@ -308,14 +316,14 @@ void SemanticAnalysis::visit_assign(Node *n) {
         }
     }
     if (!lhs->is_basic() && rhs->is_basic()) {
-        if (!lhs->get_base_type()->is_pointer() && !lhs->is_array()) {
+        if (!lhs->is_struct() && !lhs->get_base_type()->is_pointer() && !lhs->is_array()) {
             SemanticError::raise(n->get_loc(), "Cannot assign integral to non-array pointer");
         }
     }
 
 
     // Not lvalue
-    if (!(n->get_kid(1)->has_symbol() || lhs->is_pointer() || lhs->is_array() || lhs->is_struct() || lhs->is_same(rhs->get_unqualified_type()) )) {
+    if (!(n->get_kid(1)->has_symbol() || lhs->is_pointer() || lhs->is_array() || lhs->is_struct() || lhs->is_same(rhs.get()) )) {
         SemanticError::raise(n->get_loc(), "Left hand side is not an L-Value");
     }
 
@@ -336,10 +344,14 @@ void SemanticAnalysis::visit_assign(Node *n) {
         }
     }
 
+    if (lhs->is_struct() || rhs->is_struct()) {
 
-    if (lhs->is_integral() && !rhs->is_integral()) {
-        SemanticError::raise(n->get_loc(), "Tried to assign non integer to integer");
+    } else {
+        if (lhs->is_integral() && !rhs->is_integral()) {
+            SemanticError::raise(n->get_loc(), "Tried to assign non integer to integer");
+        }
     }
+
 
 
 }
@@ -348,6 +360,10 @@ void SemanticAnalysis::visit_math(Node *n) {
     std::shared_ptr<Type> lhs = n->get_kid(1)->get_type();
     std::shared_ptr<Type> rhs = n->get_kid(2)->get_type();
 
+
+    if (lhs->is_void() ||rhs->is_void()) {
+        SemanticError::raise(n->get_loc(), "Cannot do math on Void type");
+    }
     if (lhs->is_pointer()) {
         if (rhs->is_pointer()) {
             SemanticError::raise(n->get_loc(), "Cannot perform arithmetic on 2 pointers");
@@ -427,17 +443,20 @@ void SemanticAnalysis::visit_field_ref_expression(Node *n) {
     visit(n->get_kid(0));
 
     std::shared_ptr<Type> var = n->get_kid(0)->get_type();
-    //if (!var->is_same(n->get_kid(1)->get_type()->get_unqualified_type())) {
-    //    SemanticError::raise(n->get_loc(), "Tried to assign wrong type to field of struct");
-    //}
-
+    if (var->is_pointer()) {
+        SemanticError::raise(n->get_loc(), "Type is pointer to struct Foo");
+    }
     std::shared_ptr<Type> field_type = var->find_member(n->get_kid(1)->get_str())->get_type();
 
     n->set_type(field_type);
 }
 
 void SemanticAnalysis::visit_indirect_field_ref_expression(Node *n) {
-    // TODO: implement
+    visit(n->get_kid(0));
+    n->set_type(n->get_kid(0)->get_type());
+    if (n->get_type()->is_pointer()) {
+        n->un_pointer();
+    }
 }
 
 void SemanticAnalysis::visit_array_element_ref_expression(Node *n) {
@@ -450,10 +469,13 @@ void SemanticAnalysis::visit_array_element_ref_expression(Node *n) {
 
 void SemanticAnalysis::visit_variable_ref(Node *n) {
     //  annotate with symbol
-    if (!m_cur_symtab->has_symbol_recursive(n->get_kid(0)->get_str())) {
+    if (m_cur_symtab->has_symbol_recursive(n->get_kid(0)->get_str())) {
+        n->set_symbol(m_cur_symtab->lookup_recursive(n->get_kid(0)->get_str()));
+    } else if (m_cur_symtab->has_symbol_recursive("struct " + n->get_kid(0)->get_str())) {
+        n->set_symbol(m_cur_symtab->lookup_recursive("struct " + n->get_kid(0)->get_str()));
+    } else {
         SemanticError::raise(n->get_loc(), "Variable %s does not exist in Symbol Table", n->get_kid(0)->get_str().c_str());
     }
-    n->set_symbol(m_cur_symtab->lookup_recursive(n->get_kid(0)->get_str()));
 }
 
 void SemanticAnalysis::visit_literal_value(Node *n) {
