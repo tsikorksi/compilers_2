@@ -297,13 +297,13 @@ void SemanticAnalysis::visit_binary_expression(Node *n) {
 void SemanticAnalysis::visit_assign(Node *n) {
     std::shared_ptr<Type> lhs = n->get_kid(1)->get_type();
     std::shared_ptr<Type> rhs = n->get_kid(2)->get_type();
-    std::cout << lhs->as_str() << " " << rhs->as_str() << std::endl;
+    //::cout << lhs->as_str() << " " << rhs->as_str() << std::endl;
 
 
 
     // Not base types
     if (!lhs->is_basic() && !rhs->is_basic()) {
-        std::cout << lhs->get_base_type()->as_str() << " " << rhs->get_base_type()->as_str() << std::endl;
+        //std::cout << lhs->get_base_type()->as_str() << " " << rhs->get_base_type()->as_str() << std::endl;
 
         if (!lhs->get_base_type()->is_volatile() && rhs->get_base_type()->is_volatile()) {
             SemanticError::raise(n->get_loc(), "Tried to assign volatile variable to non-volatile variable");
@@ -431,12 +431,28 @@ void SemanticAnalysis::visit_function_call_expression(Node *n) {
         std::shared_ptr<Type> arg = n->get_kid(1)->get_kid(i)->get_type();
         std::shared_ptr<Type> param = func->get_type()->get_member(i).get_type();
         // Comparing symbol member type to regular type doesn't work, even when the BaseTypeKind is the same
-        if (!(arg->is_integral() == param->is_integral() || arg->is_pointer() == param->is_pointer() || arg->is_array() == param->is_array())) {
-            //std::cout << n->get_kid(1)->get_kid(i)->get_type()->as_str() << " " << func->get_type()->get_member(i).get_type()->as_str()  << std::endl;
+        if (!(check_different(arg, param))) {
             SemanticError::raise(n->get_loc(), "Argument type does not match parameter type");
         }
     }
     n->set_type(func->get_type()->get_base_type());
+}
+
+bool SemanticAnalysis::check_different(const std::shared_ptr<Type>& a, const std::shared_ptr<Type>& b) {
+    if (a->is_pointer() != b->is_pointer()) {
+        return false;
+    } else if (a->is_array() != b->is_array()) {
+        return false;
+    } else if (a->is_struct() != b->is_struct()) {
+        return false;
+    }
+    if (a->is_basic() != b->is_basic()) {
+        if (a->get_basic_type_kind() != b->get_basic_type_kind()) {
+            return false;
+        }
+        return false;
+    }
+    return true;
 }
 
 void SemanticAnalysis::visit_field_ref_expression(Node *n) {

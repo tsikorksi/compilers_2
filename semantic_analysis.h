@@ -59,6 +59,8 @@ private:
     static void visit_math(Node *n);
 
     static void visit_comparison(Node *n);
+
+    static bool check_different(const std::shared_ptr<Type>& a, const std::shared_ptr<Type>& b);
 };
 
 #endif // SEMANTIC_ANALYSIS_H
