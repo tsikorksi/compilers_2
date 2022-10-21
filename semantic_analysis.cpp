@@ -41,12 +41,8 @@ void SemanticAnalysis::visit_variable_declaration(Node *n) {
         std::shared_ptr<Type> p;
         Node * current = n->get_kid(2)->get_kid(i);
         // annotate it with its type
-        //if (!n->get_kid(1)->get_type()->is_struct()) {
         type_switcher(current ,n->get_kid(1));
         p = current->get_type();
-        //} else {
-        //    p =  n->get_kid(1)->get_type();
-        //}
 
         // add it to the Symbol Table
         if (m_cur_symtab->has_symbol_local(current->get_kid(0)->get_str())) {
@@ -297,10 +293,10 @@ void SemanticAnalysis::visit_binary_expression(Node *n) {
 void SemanticAnalysis::visit_assign(Node *n) {
     std::shared_ptr<Type> lhs = n->get_kid(1)->get_type();
     std::shared_ptr<Type> rhs = n->get_kid(2)->get_type();
-    //::cout << lhs->as_str() << " " << rhs->as_str() << std::endl;
+    //std::cout << lhs->as_str() << " " << rhs->as_str() << std::endl;
 
 
-
+    // TODO: Clean up and make more clear
     // Not base types
     if (!lhs->is_basic() && !rhs->is_basic()) {
         //std::cout << lhs->get_base_type()->as_str() << " " << rhs->get_base_type()->as_str() << std::endl;
@@ -345,6 +341,9 @@ void SemanticAnalysis::visit_assign(Node *n) {
     }
 
     if (lhs->is_struct() || rhs->is_struct()) {
+        if ((lhs->is_struct() != rhs->is_struct() ) && !lhs->is_pointer()) {
+            SemanticError::raise(n->get_loc(), "Tried to assign struct to non struct");
+        }
 
     } else {
         if (lhs->is_integral() && !rhs->is_integral()) {
@@ -364,14 +363,8 @@ void SemanticAnalysis::visit_math(Node *n) {
     if (lhs->is_void() ||rhs->is_void()) {
         SemanticError::raise(n->get_loc(), "Cannot do math on Void type");
     }
-    if (lhs->is_pointer()) {
-        if (rhs->is_pointer()) {
-            SemanticError::raise(n->get_loc(), "Cannot perform arithmetic on 2 pointers");
-        }
-    } else {
-        if (rhs->is_pointer()) {
-            SemanticError::raise(n->get_loc(), "Cannot perform arithmetic on integral with pointer");
-        }
+    if (rhs->is_pointer()) {
+        SemanticError::raise(n->get_loc(), "Cannot have pointer on right hand side of equation");
     }
 }
 
@@ -456,7 +449,7 @@ bool SemanticAnalysis::check_different(const std::shared_ptr<Type>& a, const std
 }
 
 void SemanticAnalysis::visit_field_ref_expression(Node *n) {
-    //TODO: move type up correctly
+    //TODO: move type up correctly, so it annotates with member type not struct
     visit(n->get_kid(0));
 
     std::shared_ptr<Type> var = n->get_kid(0)->get_type();
@@ -519,7 +512,6 @@ void SemanticAnalysis::visit_return_expression_statement(Node *n) {
     visit(n->get_kid(0));
     std::shared_ptr<Type> return_type = m_cur_symtab->lookup_recursive(m_cur_symtab->get_name())->get_type()->get_base_type();
     if (!return_type->is_same(n->get_kid(0)->get_type().get())) {
-        //std::cout << n->get_kid(0)->get_type()->as_str()  << " " << return_type->as_str() << std::endl;
         SemanticError::raise(n->get_loc(), "Return type does not match function declaration");
     }
 }
