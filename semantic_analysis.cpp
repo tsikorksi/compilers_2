@@ -17,6 +17,7 @@ SemanticAnalysis::SemanticAnalysis()
 SemanticAnalysis::~SemanticAnalysis() = default;
 
 void SemanticAnalysis::visit_struct_type(Node *n) {
+    // If struct doesn't exist, declare it
     if (m_cur_symtab->has_symbol_recursive("struct " + n->get_kid(0)->get_str())) {
         std::shared_ptr<Type> p = m_cur_symtab->lookup_recursive("struct " + n->get_kid(0)->get_str())->get_type();
         n->set_type(p);
@@ -39,7 +40,7 @@ void SemanticAnalysis::visit_variable_declaration(Node *n) {
         // the current declarator
         std::shared_ptr<Type> p;
         Node * current = n->get_kid(2)->get_kid(i);
-        // annotate it with its type
+        // annotate it with its type. recursively
         type_switcher(current ,n->get_kid(1));
         p = current->get_type();
 
@@ -158,6 +159,7 @@ void SemanticAnalysis::visit_basic_type(Node *n) {
         }
     }
 
+    // BaseType and Sign already determined
     std::shared_ptr<Type> p(new BasicType(kind, is_signed(sign)));
 
     // Check for Qualified types which are always first
@@ -174,6 +176,7 @@ void SemanticAnalysis::visit_basic_type(Node *n) {
 }
 
 bool SemanticAnalysis::is_signed(int sign) {
+    // This is necessary because sign has 3 possible positions, so can't use bool
     if (sign == 1) {
         return false;
     }
@@ -181,7 +184,9 @@ bool SemanticAnalysis::is_signed(int sign) {
 }
 
 void SemanticAnalysis::visit_function_definition(Node *n) {
+    // redeclare function
     visit_function_declaration(n);
+    // Define params in new scope, making the function scope be named after the function, allowing return type checking
     enter_scope(n->get_kid(1)->get_str());
     define_parameters(n);
     // Statement list
@@ -193,9 +198,11 @@ void SemanticAnalysis::define_parameters(Node *n) {
     std::shared_ptr<Type> params = n->get_kid(0)->get_type();
     for (unsigned i = 0; i < params->get_num_members(); i++) {
         Member param = params->get_member(i);
+
         if (m_cur_symtab->has_symbol_local(param.get_name())) {
             SemanticError::raise(n->get_loc(), "Cannot have 2 params of the same name");
         }
+        // add to local scope
         m_cur_symtab->define(SymbolKind::VARIABLE, param.get_name(), param.get_type());
     }
 }
@@ -479,12 +486,10 @@ void SemanticAnalysis::visit_indirect_field_ref_expression(Node *n) {
 
     std::shared_ptr<Type> var = n->get_kid(0)->get_type();
 
+    // If it's a pointer, which it should be
     if (var->is_pointer()) {
+        // Dereference it, so that the correct base type is passed up the chain
         var = var->get_base_type();
-        //std::cout << "STRUCT " << var->as_str()  << std::endl;
-        if (!var->is_struct()) {
-            SemanticError::raise(n->get_loc(), "Indirect reference to non-struct");
-        }
     } else {
         SemanticError::raise(n->get_loc(), "Indirect reference to non-pointer");
     }
@@ -495,7 +500,6 @@ void SemanticAnalysis::visit_indirect_field_ref_expression(Node *n) {
 void SemanticAnalysis::visit_array_element_ref_expression(Node *n) {
     visit(n->get_kid(0));
     n->set_type(n->get_kid(0)->get_type());
-    //std::cout << "ARR " << n->get_kid(0)->get_type()->as_str()  << std::endl;
     if (n->get_type()->is_pointer()) {
         n->un_pointer();
     }
@@ -508,8 +512,11 @@ void SemanticAnalysis::visit_variable_ref(Node *n) {
     //  annotate with symbol
     if (m_cur_symtab->has_symbol_recursive(n->get_kid(0)->get_str())) {
         n->set_symbol(m_cur_symtab->lookup_recursive(n->get_kid(0)->get_str()));
+
     } else if (m_cur_symtab->has_symbol_recursive("struct " + n->get_kid(0)->get_str())) {
+        // Must also search in structs
         n->set_symbol(m_cur_symtab->lookup_recursive("struct " + n->get_kid(0)->get_str()));
+
     } else {
         SemanticError::raise(n->get_loc(), "Variable %s does not exist in Symbol Table", n->get_kid(0)->get_str().c_str());
     }
@@ -528,6 +535,7 @@ void SemanticAnalysis::visit_literal_value(Node *n) {
         case TOK_STR_LIT:{
             std::shared_ptr<Type> p(new BasicType(kind, true));
             n->set_type(p);
+            // this is just a char pointer so
             n->make_pointer();
         }
 
@@ -537,6 +545,7 @@ void SemanticAnalysis::visit_literal_value(Node *n) {
 void SemanticAnalysis::visit_return_expression_statement(Node *n) {
     visit(n->get_kid(0));
     std::shared_ptr<Type> return_type = m_cur_symtab->lookup_recursive(m_cur_symtab->get_name())->get_type()->get_base_type();
+    // check name of symbol table
     if (!return_type->is_same(n->get_kid(0)->get_type().get())) {
         SemanticError::raise(n->get_loc(), "Return type does not match function declaration");
     }

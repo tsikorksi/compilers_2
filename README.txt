@@ -1,2 +1,2 @@
 Didn't feel as comfortable working with underlying types, but thought particular note could be made of my handling
-of functions
+of functions, as well as how we modify SymbolTable and NodeBase, both of which include good helper functions
