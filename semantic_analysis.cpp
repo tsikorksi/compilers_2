@@ -439,6 +439,7 @@ void SemanticAnalysis::visit_function_call_expression(Node *n) {
 }
 
 bool SemanticAnalysis::check_different(const std::shared_ptr<Type>& a, const std::shared_ptr<Type>& b) {
+    // Clean Param vs Arg dif checker
     if (a->is_pointer() != b->is_pointer()) {
         return false;
     } else if (a->is_array() != b->is_array()) {
