@@ -65,8 +65,8 @@ void SemanticAnalysis::type_switcher(Node *declare, const std::shared_ptr<Type>&
             type_switcher(declare->get_kid(0), type);
             declare->set_type(declare->get_kid(0)->get_type());
             // Possibly remove, dependant on https://courselore.org/courses/5505975532/conversations/100
-            // To me this is the result of a parser error, which means that the Pointer AST node is above the array
-            // AST node, but fixing that is beyond my scope.
+            // To me this is the result of a parser logical error, which means that the Pointer AST node
+            // is above the array AST node, but fixing that is beyond my scope.
             if (declare->get_type()->is_array()) {
                 unsigned size = declare->get_type()->get_array_size();
                 declare->un_array();
@@ -82,6 +82,7 @@ void SemanticAnalysis::type_switcher(Node *declare, const std::shared_ptr<Type>&
             declare->make_array(stoi(declare->get_kid(1)->get_str()));
             break;
     }
+    // Move variable name up the chain
     declare->set_str(declare->get_kid(0)->get_str());
 }
 
@@ -129,7 +130,6 @@ void SemanticAnalysis::visit_basic_type(Node *n) {
             sign = 2;
         }
     }
-
 
 
     // if long or short specify type
