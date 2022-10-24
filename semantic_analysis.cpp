@@ -51,25 +51,27 @@ void SemanticAnalysis::visit_variable_declaration(Node *n) {
     }
 }
 
-/// Annotate a complex type in the leaf node
+/// Annotate a layered type in the leaf node
 /// \param declare pointer to the declarator
 /// \param type pointer to the base type node
 void SemanticAnalysis::type_switcher(Node *declare, Node *type) {
-    declare->set_type(type->get_type());
 
     switch (declare->get_tag()) {
         case AST_NAMED_DECLARATOR:
+            declare->set_type(type->get_type());
             break;
         case AST_POINTER_DECLARATOR:
+            type_switcher(declare->get_kid(0), type);
+            declare->set_type(declare->get_kid(0)->get_type());
             declare->make_pointer();
-            visit_pointer_declarator(declare);
             break;
-
         case AST_ARRAY_DECLARATOR:
+            type_switcher(declare->get_kid(0), type);
+            declare->set_type(declare->get_kid(0)->get_type());
             declare->make_array(stoi(declare->get_kid(1)->get_str()));
-            declare->get_kid(0)->set_str(declare->get_kid(0)->get_kid(0)->get_str());
             break;
     }
+    declare->set_str(declare->get_kid(0)->get_str());
 }
 /// Dive into nested pointers looking for the layers. Shift name up the chain, preserving base type
 /// \param n the current pointer
@@ -396,15 +398,15 @@ void SemanticAnalysis::visit_unary_expression(Node *n) {
 }
 
 void SemanticAnalysis::visit_postfix_expression(Node *n) {
-    // TODO: implement
+    // None of these three appear in any example, and frankly I don't even know what they look like
 }
 
 void SemanticAnalysis::visit_conditional_expression(Node *n) {
-    // TODO: implement
+    // None of these three appear in any example, and frankly I don't even know what they look like
 }
 
 void SemanticAnalysis::visit_cast_expression(Node *n) {
-    // TODO: implement
+    // None of these three appear in any example, and frankly I don't even know what they look like
 }
 
 void SemanticAnalysis::visit_function_call_expression(Node *n) {

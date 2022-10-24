@@ -21,6 +21,7 @@
 #include <cassert>
 #include <memory>
 #include <utility>
+#include <iostream>
 #include "node_base.h"
 
 NodeBase::NodeBase() {
