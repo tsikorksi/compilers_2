@@ -1,7 +1,6 @@
 #include <cassert>
 #include <algorithm>
 #include <utility>
-#include <map>
 #include <iostream>
 #include "grammar_symbols.h"
 #include "parse.tab.h"
@@ -293,13 +292,10 @@ void SemanticAnalysis::visit_binary_expression(Node *n) {
 void SemanticAnalysis::visit_assign(Node *n) {
     std::shared_ptr<Type> lhs = n->get_kid(1)->get_type();
     std::shared_ptr<Type> rhs = n->get_kid(2)->get_type();
-    //std::cout << lhs->as_str() << " " << rhs->as_str() << std::endl;
+    //std::cout << "ASSIGN " << lhs->as_str() << " " << rhs->as_str() << std::endl;
 
-
-    // TODO: Clean up and make more clear
     // Not base types
     if (!lhs->is_basic() && !rhs->is_basic()) {
-        //std::cout << lhs->get_base_type()->as_str() << " " << rhs->get_base_type()->as_str() << std::endl;
 
         if (!lhs->get_base_type()->is_volatile() && rhs->get_base_type()->is_volatile()) {
             SemanticError::raise(n->get_loc(), "Tried to assign volatile variable to non-volatile variable");
@@ -312,15 +308,19 @@ void SemanticAnalysis::visit_assign(Node *n) {
         }
     }
     if (!lhs->is_basic() && rhs->is_basic()) {
-        if (!lhs->is_struct() && !lhs->get_base_type()->is_pointer() && !lhs->is_array()) {
-            SemanticError::raise(n->get_loc(), "Cannot assign integral to non-array pointer");
+        if (lhs->is_pointer()) {
+            if (!lhs->get_base_type()->is_struct() && !lhs->get_base_type()->is_array() && !lhs->get_base_type()->is_pointer()) {
+                SemanticError::raise(n->get_loc(), "Cannot assign integral to pointer");
+            }
         }
     }
 
 
     // Not lvalue
-    if (!(n->get_kid(1)->has_symbol() || lhs->is_pointer() || lhs->is_array() || lhs->is_struct() || lhs->is_same(rhs.get()) )) {
-        SemanticError::raise(n->get_loc(), "Left hand side is not an L-Value");
+    if (!lhs->is_integral()) {
+        if (!(n->get_kid(1)->has_symbol() || lhs->is_pointer() || lhs->is_array() || lhs->is_struct() || lhs->is_same(rhs.get()) )) {
+            SemanticError::raise(n->get_loc(), "Left hand side is not an L-Value");
+        }
     }
 
     // Const error
@@ -350,22 +350,21 @@ void SemanticAnalysis::visit_assign(Node *n) {
             SemanticError::raise(n->get_loc(), "Tried to assign non integer to integer");
         }
     }
-
-
-
 }
 
 void SemanticAnalysis::visit_math(Node *n) {
     std::shared_ptr<Type> lhs = n->get_kid(1)->get_type();
     std::shared_ptr<Type> rhs = n->get_kid(2)->get_type();
 
+    //std::cout << "MATH " << lhs->as_str() << " " << rhs->as_str() << std::endl;
 
-    if (lhs->is_void() ||rhs->is_void()) {
+    if (lhs->is_void() || rhs->is_void()) {
         SemanticError::raise(n->get_loc(), "Cannot do math on Void type");
     }
-    if (rhs->is_pointer()) {
+    if (rhs->is_pointer() && !lhs->is_pointer()) {
         SemanticError::raise(n->get_loc(), "Cannot have pointer on right hand side of equation");
     }
+
 }
 
 void SemanticAnalysis::visit_comparison(Node *n) {
@@ -415,10 +414,12 @@ void SemanticAnalysis::visit_function_call_expression(Node *n) {
     if (func == nullptr) {
         SemanticError::raise(n->get_loc(), "Function %s does not exist", n->get_kid(0)->get_symbol()->get_name().c_str());
     }
+
     // visit args
     if (func->get_type()->get_num_members() != n->get_kid(1)->get_num_kids()) {
         SemanticError::raise(n->get_loc(), "Number of arguments does not match number of parameters");
     }
+
     for (unsigned i = 0; i < func->get_type()->get_num_members(); i++) {
         visit(n->get_kid(1)->get_kid(i));
         std::shared_ptr<Type> arg = n->get_kid(1)->get_kid(i)->get_type();
@@ -449,34 +450,70 @@ bool SemanticAnalysis::check_different(const std::shared_ptr<Type>& a, const std
 }
 
 void SemanticAnalysis::visit_field_ref_expression(Node *n) {
-    //TODO: move type up correctly, so it annotates with member type not struct
     visit(n->get_kid(0));
 
     std::shared_ptr<Type> var = n->get_kid(0)->get_type();
-    if (var->is_pointer()) {
-        SemanticError::raise(n->get_loc(), "Type is pointer to struct Foo");
-    }
-    std::shared_ptr<Type> field_type = var->find_member(n->get_kid(1)->get_str())->get_type();
 
+    if (var->is_pointer()) {
+        SemanticError::raise(n->get_loc(), "Direct reference to pointer");
+    }
+    //std::cout << "REF " << var->as_str() << std::endl;
+    std::shared_ptr<Type> field_type = var->find_member(n->get_kid(1)->get_str())->get_type();
     n->set_type(field_type);
 }
 
 void SemanticAnalysis::visit_indirect_field_ref_expression(Node *n) {
-    //TODO: move type up correctly
+
+    // This and the above function are almost identical since they are virtual and thus cannot have default values
     visit(n->get_kid(0));
-    n->set_type(n->get_kid(0)->get_type());
-    if (n->get_type()->is_pointer()) {
-        n->un_pointer();
+
+
+    std::shared_ptr<Type> var = n->get_kid(0)->get_type();
+
+    if (var->is_pointer()) {
+        var = var->get_base_type();
+        //std::cout << "STRUCT " << var->as_str()  << std::endl;
+        if (!var->is_struct()) {
+            SemanticError::raise(n->get_loc(), "Indirect reference to non-struct");
+        }
+    } else {
+        SemanticError::raise(n->get_loc(), "Indirect reference to non-pointer");
     }
+    std::shared_ptr<Type> field_type = var->find_member(n->get_kid(1)->get_str())->get_type();
+    n->set_type(field_type);
 }
 
 void SemanticAnalysis::visit_array_element_ref_expression(Node *n) {
     visit(n->get_kid(0));
     n->set_type(n->get_kid(0)->get_type());
+    //std::cout << "ARR " << n->get_kid(0)->get_type()->as_str()  << std::endl;
     if (n->get_type()->is_pointer()) {
         n->un_pointer();
     }
+    if (n->get_type()->is_array()) {
+        n->un_array();
+    }
 }
+
+/* void SemanticAnalysis::visit_array_element_ref_expression(Node *n) {
+    visit(n->get_kid(0));
+    n->set_type(n->get_kid(0)->get_type());
+    std::cout << "ARR " << n->get_kid(0)->get_type()->as_str()  << std::endl;
+
+    if (n->get_type()->is_pointer()) {
+        if (n->get_type()->get_base_type()->is_pointer()) {
+            std::cout << "BOOM " << n->get_type()->get_base_type()->as_str() << std::endl;
+            //SemanticError::raise(n->get_loc(), "Double pointer in array reference");
+        } else {
+            n->un_pointer();
+        }
+        std::cout << "BANG " << n->get_type()->as_str() << std::endl;
+    }
+    if (n->get_type()->is_array()) {
+        std::cout << "BING " << n->get_type()->as_str() << std::endl;
+        n->un_array();
+    }
+} */
 
 void SemanticAnalysis::visit_variable_ref(Node *n) {
     //  annotate with symbol

@@ -84,5 +84,10 @@ void NodeBase::make_array(unsigned size) {
     assert(m_type->is_array());
 }
 
+void NodeBase::un_array() {
+        assert(m_type->is_array());
+        m_type = m_type->get_base_type();
+}
+
 
 // TODO: implement member functions
