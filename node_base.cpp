@@ -20,15 +20,12 @@
 
 #include <cassert>
 #include <memory>
-#include <utility>
-#include <iostream>
 #include "node_base.h"
 
-NodeBase::NodeBase() {
-}
+NodeBase::NodeBase() = default;
 
-NodeBase::~NodeBase() {
-}
+NodeBase::~NodeBase() = default;
+
 void NodeBase::set_symbol(Symbol *symbol) {
     assert(!has_symbol());
     assert(m_type == nullptr);
@@ -89,6 +86,3 @@ void NodeBase::un_array() {
         assert(m_type->is_array());
         m_type = m_type->get_base_type();
 }
-
-
-// TODO: implement member functions
