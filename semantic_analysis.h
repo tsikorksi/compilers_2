@@ -36,6 +36,7 @@ public:
   virtual void visit_array_element_ref_expression(Node *n);
   virtual void visit_variable_ref(Node *n);
   virtual void visit_literal_value(Node *n);
+  virtual void visit_return_expression_statement(Node *n);
 
 private:
   // TODO: add helper functions
@@ -44,13 +45,9 @@ private:
 
     void leave_scope();
 
-    void type_switcher(Node *declare, Node *type);
+    void type_switcher(Node *declare, const std::shared_ptr<Type>& type);
 
     void define_parameters(Node *n);
-
-    void visit_return_expression_statement(Node *n);
-
-    void visit_pointer_declarator(Node *n);
 
     static bool is_signed(int sign);
 

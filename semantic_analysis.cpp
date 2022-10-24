@@ -1,7 +1,6 @@
 #include <cassert>
 #include <algorithm>
 #include <utility>
-#include <iostream>
 #include "grammar_symbols.h"
 #include "parse.tab.h"
 #include "node.h"
@@ -41,7 +40,7 @@ void SemanticAnalysis::visit_variable_declaration(Node *n) {
         std::shared_ptr<Type> p;
         Node * current = n->get_kid(2)->get_kid(i);
         // annotate it with its type. recursively
-        type_switcher(current ,n->get_kid(1));
+        type_switcher(current ,n->get_kid(1)->get_type());
         p = current->get_type();
 
         // add it to the Symbol Table
@@ -55,16 +54,26 @@ void SemanticAnalysis::visit_variable_declaration(Node *n) {
 /// Annotate a layered type in the leaf node
 /// \param declare pointer to the declarator
 /// \param type pointer to the base type node
-void SemanticAnalysis::type_switcher(Node *declare, Node *type) {
+void SemanticAnalysis::type_switcher(Node *declare, const std::shared_ptr<Type>& type) {
 
     switch (declare->get_tag()) {
         case AST_NAMED_DECLARATOR:
-            declare->set_type(type->get_type());
+            declare->set_type(type);
             break;
         case AST_POINTER_DECLARATOR:
             type_switcher(declare->get_kid(0), type);
             declare->set_type(declare->get_kid(0)->get_type());
-            declare->make_pointer();
+            // Possibly remove, dependant on https://courselore.org/courses/5505975532/conversations/100
+            // To me this is the result of a parser error, which means that the Pointer AST node is above the array
+            // AST node, but fixing that is beyond my scope.
+            if (declare->get_type()->is_array()) {
+                unsigned size = declare->get_type()->get_array_size();
+                declare->un_array();
+                declare->make_pointer();
+                declare->make_array(size);
+            } else {
+                declare->make_pointer();
+            }
             break;
         case AST_ARRAY_DECLARATOR:
             type_switcher(declare->get_kid(0), type);
@@ -73,18 +82,6 @@ void SemanticAnalysis::type_switcher(Node *declare, Node *type) {
             break;
     }
     declare->set_str(declare->get_kid(0)->get_str());
-}
-/// Dive into nested pointers looking for the layers. Shift name up the chain, preserving base type
-/// \param n the current pointer
-void SemanticAnalysis::visit_pointer_declarator(Node *n) {
-    if (n->get_kid(0)->get_tag() == ASTNodeTag::AST_NAMED_DECLARATOR) {
-        n->set_str(n->get_kid(0)->get_kid(0)->get_str());
-    } else {
-        visit_pointer_declarator(n->get_kid(0));
-        n->make_pointer();
-        n->set_str(n->get_kid(0)->get_str());
-    }
-    n->get_kid(0)->set_str(n->get_kid(0)->get_kid(0)->get_str());
 }
 
 void SemanticAnalysis::visit_basic_type(Node *n) {
@@ -230,7 +227,7 @@ void SemanticAnalysis::visit_function_declaration(Node *n) {
 void SemanticAnalysis::visit_function_parameter(Node *n) {
     // Get type
     visit(n->get_kid(0));
-    type_switcher(n->get_kid(1), n->get_kid(0));
+    type_switcher(n->get_kid(1), n->get_kid(0)->get_type());
     n->set_str(n->get_kid(1)->get_kid(0)->get_str());
     n->set_type(n->get_kid(0)->get_type());
 
