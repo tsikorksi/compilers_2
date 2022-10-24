@@ -524,26 +524,23 @@ void SemanticAnalysis::visit_variable_ref(Node *n) {
 }
 
 void SemanticAnalysis::visit_literal_value(Node *n) {
-    LiteralValue lit;
     std::shared_ptr<Type> p;
     switch (n->get_kid(0)->get_tag()) {
         case TOK_INT_LIT: {
-            lit = LiteralValue::from_int_literal(n->get_kid(0)->get_str(), n->get_loc());
+            LiteralValue lit = LiteralValue::from_int_literal(n->get_kid(0)->get_str(), n->get_loc());
             p = static_cast<const std::shared_ptr<Type>>(new BasicType((lit.is_long()) ? BasicTypeKind::LONG : BasicTypeKind::INT, !lit.is_unsigned()));
             n->set_type(p);
             break;
         }
         case TOK_CHAR_LIT: {
-            lit = LiteralValue::from_char_literal(n->get_kid(0)->get_str(), n->get_loc());
-            p = static_cast<const std::shared_ptr<Type>>(new BasicType(BasicTypeKind::CHAR, !lit.is_unsigned()));
+            p = static_cast<const std::shared_ptr<Type>>(new BasicType(BasicTypeKind::CHAR, true));
             n->set_type(p);
             break;
         }
         case TOK_STR_LIT:{
-            lit = LiteralValue::from_str_literal(n->get_kid(0)->get_str(), n->get_loc());
-            p = static_cast<const std::shared_ptr<Type>>(new BasicType(BasicTypeKind::CHAR, !lit.is_unsigned()));
-            // this is just a char pointer so
+            p = static_cast<const std::shared_ptr<Type>>(new BasicType(BasicTypeKind::CHAR, true));
             n->set_type(p);
+            // this is just a char pointer so
             n->make_pointer();
         }
 
