@@ -292,7 +292,7 @@ void SemanticAnalysis::visit_binary_expression(Node *n) {
 void SemanticAnalysis::visit_assign(Node *n) {
     std::shared_ptr<Type> lhs = n->get_kid(1)->get_type();
     std::shared_ptr<Type> rhs = n->get_kid(2)->get_type();
-    //std::cout << "ASSIGN " << lhs->as_str() << " " << rhs->as_str() << std::endl;
+   // std::cout << "ASSIGN " << lhs->as_str() << " " << rhs->as_str() << std::endl;
 
     // Not base types
     if (!lhs->is_basic() && !rhs->is_basic()) {
@@ -378,7 +378,7 @@ void SemanticAnalysis::visit_comparison(Node *n) {
         SemanticError::raise(n->get_loc(), "Tried to compare function and non function");
     }
     if (lhs->is_struct() != rhs->is_struct()) {
-        SemanticError::raise(n->get_loc(), "Tried to compare function and non function");
+        SemanticError::raise(n->get_loc(), "Tried to compare struct and non struct");
     }
 }
 
@@ -457,9 +457,16 @@ void SemanticAnalysis::visit_field_ref_expression(Node *n) {
     if (var->is_pointer()) {
         SemanticError::raise(n->get_loc(), "Direct reference to pointer");
     }
+
     //std::cout << "REF " << var->as_str() << std::endl;
     std::shared_ptr<Type> field_type = var->find_member(n->get_kid(1)->get_str())->get_type();
     n->set_type(field_type);
+    if (field_type->is_array() && field_type->get_base_type()->get_basic_type_kind() == BasicTypeKind::CHAR) {
+
+        n->make_pointer();
+        //std::cout << "CHAR " << var->as_str() << std::endl;
+
+    }
 }
 
 void SemanticAnalysis::visit_indirect_field_ref_expression(Node *n) {
@@ -494,26 +501,6 @@ void SemanticAnalysis::visit_array_element_ref_expression(Node *n) {
         n->un_array();
     }
 }
-
-/* void SemanticAnalysis::visit_array_element_ref_expression(Node *n) {
-    visit(n->get_kid(0));
-    n->set_type(n->get_kid(0)->get_type());
-    std::cout << "ARR " << n->get_kid(0)->get_type()->as_str()  << std::endl;
-
-    if (n->get_type()->is_pointer()) {
-        if (n->get_type()->get_base_type()->is_pointer()) {
-            std::cout << "BOOM " << n->get_type()->get_base_type()->as_str() << std::endl;
-            //SemanticError::raise(n->get_loc(), "Double pointer in array reference");
-        } else {
-            n->un_pointer();
-        }
-        std::cout << "BANG " << n->get_type()->as_str() << std::endl;
-    }
-    if (n->get_type()->is_array()) {
-        std::cout << "BING " << n->get_type()->as_str() << std::endl;
-        n->un_array();
-    }
-} */
 
 void SemanticAnalysis::visit_variable_ref(Node *n) {
     //  annotate with symbol
