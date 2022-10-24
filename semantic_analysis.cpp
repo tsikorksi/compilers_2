@@ -298,7 +298,6 @@ void SemanticAnalysis::visit_binary_expression(Node *n) {
 void SemanticAnalysis::visit_assign(Node *n) {
     std::shared_ptr<Type> lhs = n->get_kid(1)->get_type();
     std::shared_ptr<Type> rhs = n->get_kid(2)->get_type();
-   // std::cout << "ASSIGN " << lhs->as_str() << " " << rhs->as_str() << std::endl;
 
     // Not base types
     if (!lhs->is_basic() && !rhs->is_basic()) {
@@ -360,9 +359,14 @@ void SemanticAnalysis::visit_assign(Node *n) {
 
 void SemanticAnalysis::visit_math(Node *n) {
     std::shared_ptr<Type> lhs = n->get_kid(1)->get_type();
+
+    if (lhs->is_integral() && lhs->get_basic_type_kind() < BasicTypeKind::INT) {
+        // Promote operand if necessary
+        n->set_kid(1, promote_to_int(n->get_kid(1)));
+        lhs = n->get_kid(1)->get_type();
+    }
     std::shared_ptr<Type> rhs = n->get_kid(2)->get_type();
 
-    //std::cout << "MATH " << lhs->as_str() << " " << rhs->as_str() << std::endl;
 
     if (lhs->is_void() || rhs->is_void()) {
         SemanticError::raise(n->get_loc(), "Cannot do math on Void type");
@@ -465,14 +469,12 @@ void SemanticAnalysis::visit_field_ref_expression(Node *n) {
         SemanticError::raise(n->get_loc(), "Direct reference to pointer");
     }
 
-    //std::cout << "REF " << var->as_str() << std::endl;
     std::shared_ptr<Type> field_type = var->find_member(n->get_kid(1)->get_str())->get_type();
     n->set_type(field_type);
+    // if it's an array of char's it's actually a pointer to char's
     if (field_type->is_array() && field_type->get_base_type()->get_basic_type_kind() == BasicTypeKind::CHAR) {
 
         n->make_pointer();
-        //std::cout << "CHAR " << var->as_str() << std::endl;
-
     }
 }
 
@@ -548,6 +550,20 @@ void SemanticAnalysis::visit_return_expression_statement(Node *n) {
         SemanticError::raise(n->get_loc(), "Return type does not match function declaration");
     }
 }
+
+Node *SemanticAnalysis::promote_to_int(Node *n) {
+    assert(n->get_type()->is_integral());
+    assert(n->get_type()->get_basic_type_kind() < BasicTypeKind::INT);
+    std::shared_ptr<Type> type(new BasicType(BasicTypeKind::INT, n->get_type()->is_signed()));
+    return implicit_conversion(n, type);
+}
+
+Node *SemanticAnalysis::implicit_conversion(Node *n, const std::shared_ptr<Type> &type) {
+    std::unique_ptr<Node> conversion(new Node(AST_IMPLICIT_CONVERSION, {n}));
+    conversion->set_type(type);
+    return conversion.release();
+}
+
 
 void SemanticAnalysis::enter_scope(std::string name) {
     auto *scope = new SymbolTable(m_cur_symtab, std::move(name));

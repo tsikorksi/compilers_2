@@ -58,6 +58,10 @@ private:
     static void visit_comparison(Node *n);
 
     static bool check_different(const std::shared_ptr<Type>& a, const std::shared_ptr<Type>& b);
+
+    static Node *promote_to_int(Node *n);
+
+    static Node *implicit_conversion(Node *n, const std::shared_ptr<Type> &type);
 };
 
 #endif // SEMANTIC_ANALYSIS_H
