@@ -14,7 +14,9 @@ SemanticAnalysis::SemanticAnalysis()
     m_cur_symtab = m_global_symtab;
 }
 
-SemanticAnalysis::~SemanticAnalysis() = default;
+SemanticAnalysis::~SemanticAnalysis()  {
+    delete m_global_symtab;
+}
 
 void SemanticAnalysis::visit_struct_type(Node *n) {
     // If struct doesn't exist, declare it
@@ -576,7 +578,9 @@ void SemanticAnalysis::enter_scope(std::string name) {
 }
 
 void SemanticAnalysis::leave_scope() {
+    SymbolTable * temp = m_cur_symtab;
     m_cur_symtab = m_cur_symtab->get_parent();
+    delete temp;
     assert(m_cur_symtab != nullptr);
 }
 
