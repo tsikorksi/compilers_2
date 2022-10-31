@@ -10,36 +10,36 @@
 
 class SemanticAnalysis : public ASTVisitor {
 private:
-  SymbolTable *m_global_symtab, *m_cur_symtab;
+    SymbolTable *m_global_symtab, *m_cur_symtab;
 
 public:
-  SemanticAnalysis();
-  virtual ~SemanticAnalysis();
+    SemanticAnalysis();
+    virtual ~SemanticAnalysis();
 
-  virtual void visit_struct_type(Node *n);
-  virtual void visit_union_type(Node *n);
-  virtual void visit_variable_declaration(Node *n);
-  virtual void visit_basic_type(Node *n);
-  virtual void visit_function_definition(Node *n);
-  virtual void visit_function_declaration(Node *n);
-  virtual void visit_function_parameter(Node *n);
-  virtual void visit_statement_list(Node *n);
-  virtual void visit_struct_type_definition(Node *n);
-  virtual void visit_binary_expression(Node *n);
-  virtual void visit_unary_expression(Node *n);
-  virtual void visit_postfix_expression(Node *n);
-  virtual void visit_conditional_expression(Node *n);
-  virtual void visit_cast_expression(Node *n);
-  virtual void visit_function_call_expression(Node *n);
-  virtual void visit_field_ref_expression(Node *n);
-  virtual void visit_indirect_field_ref_expression(Node *n);
-  virtual void visit_array_element_ref_expression(Node *n);
-  virtual void visit_variable_ref(Node *n);
-  virtual void visit_literal_value(Node *n);
-  virtual void visit_return_expression_statement(Node *n);
+    virtual void visit_struct_type(Node *n);
+    virtual void visit_union_type(Node *n);
+    virtual void visit_variable_declaration(Node *n);
+    virtual void visit_basic_type(Node *n);
+    virtual void visit_function_definition(Node *n);
+    virtual void visit_function_declaration(Node *n);
+    virtual void visit_function_parameter(Node *n);
+    virtual void visit_statement_list(Node *n);
+    virtual void visit_struct_type_definition(Node *n);
+    virtual void visit_binary_expression(Node *n);
+    virtual void visit_unary_expression(Node *n);
+    virtual void visit_postfix_expression(Node *n);
+    virtual void visit_conditional_expression(Node *n);
+    virtual void visit_cast_expression(Node *n);
+    virtual void visit_function_call_expression(Node *n);
+    virtual void visit_field_ref_expression(Node *n);
+    virtual void visit_indirect_field_ref_expression(Node *n);
+    virtual void visit_array_element_ref_expression(Node *n);
+    virtual void visit_variable_ref(Node *n);
+    virtual void visit_literal_value(Node *n);
+    virtual void visit_return_expression_statement(Node *n);
 
 private:
-  // TODO: add helper functions
+    // TODO: add helper functions
 
     void enter_scope(std::string name);
 
@@ -62,6 +62,8 @@ private:
     static Node *promote_to_int(Node *n);
 
     static Node *implicit_conversion(Node *n, const std::shared_ptr<Type> &type);
+
+    SymbolTable *get_global_symtab() { return m_global_symtab; }
 };
 
 #endif // SEMANTIC_ANALYSIS_H
