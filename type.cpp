@@ -1,5 +1,6 @@
 #include <cassert>
 #include "exceptions.h"
+#include "storage.h"
 #include "type.h"
 
 ////////////////////////////////////////////////////////////////////////
@@ -270,6 +271,14 @@ unsigned QualifiedType::get_array_size() const {
   return get_base_type()->get_array_size();
 }
 
+unsigned QualifiedType::get_storage_size() const {
+  return get_base_type()->get_storage_size();
+}
+
+unsigned QualifiedType::get_alignment() const {
+  return get_base_type()->get_alignment();
+}
+
 ////////////////////////////////////////////////////////////////////////
 // BasicType implementation
 ////////////////////////////////////////////////////////////////////////
@@ -328,12 +337,30 @@ bool BasicType::is_signed() const {
   return m_is_signed;
 }
 
+unsigned BasicType::get_storage_size() const {
+  switch (m_kind) {
+  case BasicTypeKind::CHAR: return 1;
+  case BasicTypeKind::SHORT: return 2;
+  case BasicTypeKind::INT: return 4;
+  case BasicTypeKind::LONG: return 8;
+  default:
+    assert(false);
+    return 0;
+  }
+}
+
+unsigned BasicType::get_alignment() const {
+  return get_storage_size();
+}
+
 ////////////////////////////////////////////////////////////////////////
 // StructType implementation
 ////////////////////////////////////////////////////////////////////////
 
 StructType::StructType(const std::string &name)
-  : m_name(name) {
+  : m_name(name)
+  , m_storage_size(0U)
+  , m_alignment(0U) {
 }
 
 StructType::~StructType() {
@@ -391,6 +418,29 @@ bool StructType::is_struct() const {
   return true;
 }
 
+unsigned StructType::get_storage_size() const {
+  if (m_storage_size == 0U)
+    calculate_storage();
+  return m_storage_size;
+}
+
+unsigned StructType::get_alignment() const {
+  if (m_alignment == 0U)
+    calculate_storage();
+  return m_alignment;
+}
+
+void StructType::calculate_storage() const {
+  StorageCalculator scalc;
+  for (unsigned i = 0; i < get_num_members(); ++i) {
+    const Member &member = get_member(i);
+    scalc.add_field(member.get_type());
+  }
+  scalc.finish();
+  m_storage_size = scalc.get_size();
+  m_alignment = scalc.get_align();
+}
+
 ////////////////////////////////////////////////////////////////////////
 // FunctionType implementation
 ////////////////////////////////////////////////////////////////////////
@@ -438,6 +488,14 @@ bool FunctionType::is_function() const {
   return true;
 }
 
+unsigned FunctionType::get_storage_size() const {
+  RuntimeError::raise("a function does not have a storage size");
+}
+
+unsigned FunctionType::get_alignment() const {
+  RuntimeError::raise("a function does not have an alignment");
+}
+
 ////////////////////////////////////////////////////////////////////////
 // PointerType implementation
 ////////////////////////////////////////////////////////////////////////
@@ -467,6 +525,14 @@ std::string PointerType::as_str() const {
 
 bool PointerType::is_pointer() const {
   return true;
+}
+
+unsigned PointerType::get_storage_size() const {
+  return 8U;
+}
+
+unsigned PointerType::get_alignment() const {
+  return 8U;
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -512,4 +578,12 @@ bool ArrayType::is_array() const {
 
 unsigned ArrayType::get_array_size() const {
   return m_size;
+}
+
+unsigned ArrayType::get_storage_size() const {
+  return get_base_type()->get_storage_size() * m_size;
+}
+
+unsigned ArrayType::get_alignment() const {
+  return get_base_type()->get_alignment();
 }

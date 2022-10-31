@@ -23,14 +23,16 @@
 #include "ast.h"
 #include "grammar_symbols.h"
 #include "node.h"
+#include "print_highlevel_code.h"
 #include "exceptions.h"
 
 void usage() {
-  fprintf(stderr, "Usage: nearly_c [options...] <filename>\n"
+  fprintf(stderr, "Usage: nearly_cc [options...] <filename>\n"
                   "Options:\n"
                   "  -l   print tokens\n"
                   "  -p   print parse tree\n"
-                  "  -a   perform semantic analysis, print symbol table\n");
+                  "  -a   perform semantic analysis, print symbol table\n"
+                  "  -h   print results of high-level code generation\n");
   exit(1);
 }
 
@@ -38,6 +40,7 @@ enum class Mode {
   PRINT_TOKENS,
   PRINT_PARSE_TREE,
   SEMANTIC_ANALYSIS,
+  HIGHLEVEL_CODEGEN,
   COMPILE,
 };
 
@@ -59,6 +62,8 @@ int main(int argc, char **argv) {
       mode = Mode::PRINT_PARSE_TREE;
     } else if (arg == "-a") {
       mode = Mode::SEMANTIC_ANALYSIS;
+    } else if (arg == "-h") {
+      mode = Mode::HIGHLEVEL_CODEGEN;
     } else {
       break;
     }
@@ -107,12 +112,24 @@ void process_source_file(const std::string &filename, Mode mode) {
       Node *ast = ctx.get_ast();
       ASTTreePrint ptp;
       ptp.print(ast);
-    } else if (mode == Mode::SEMANTIC_ANALYSIS) {
+    } else if (mode >= Mode::SEMANTIC_ANALYSIS) {
       // Perform semantic analysis, print symbol table
       ctx.analyze();
-      ctx.print_symbol_table();
-    } else if (mode == Mode::COMPILE) {
-      printf("TODO: compile the source code\n");
+      if (mode >= Mode::HIGHLEVEL_CODEGEN) {
+        std::unique_ptr<ModuleCollector> module_collector;
+
+        if (mode == Mode::HIGHLEVEL_CODEGEN) {
+          module_collector.reset(new PrintHighlevelCode());
+        } else {
+          // TODO: here is where we could create a ModuleCollector which does low-level code gen
+          printf("TODO: compile the source code\n");
+        }
+
+        // high-level code generation
+        if (module_collector.get() != nullptr) {
+          ctx.highlevel_codegen(module_collector.get());
+        }
+      }
     }
   }
 }

@@ -2,11 +2,13 @@ CXX = g++
 CXXFLAGS = -g -Wall -std=c++17 -I.
 
 GENERATED_SRCS = parse.tab.cpp lex.yy.cpp grammar_symbols.cpp \
-	ast.cpp ast_visitor.cpp
-GENERATED_HDRS = parse.tab.h lex.yy.h grammar_symbols.h ast_visitor.h
+	ast.cpp ast_visitor.cpp highlevel.cpp
+GENERATED_HDRS = parse.tab.h lex.yy.h grammar_symbols.h ast_visitor.h highlevel.h
 SRCS = node.cpp node_base.cpp location.cpp treeprint.cpp \
 	main.cpp context.cpp type.cpp symtab.cpp semantic_analysis.cpp \
-	literal_value.cpp \
+	literal_value.cpp operand.cpp instruction.cpp instruction_seq.cpp \
+	formatter.cpp highlevel_formatter.cpp print_instruction_seq.cpp module_collector.cpp \
+	highlevel_codegen.cpp storage.cpp print_highlevel_code.cpp \
 	yyerror.cpp exceptions.cpp cpputil.cpp \
 	$(GENERATED_SRCS)
 OBJS = $(SRCS:%.cpp=%.o)
@@ -34,6 +36,9 @@ grammar_symbols.h grammar_symbols.cpp : $(PARSER_SRC) scan_grammar_symbols.rb
 
 ast.cpp ast_visitor.h ast_visitor.cpp : ast.h gen_ast_code.rb
 	./gen_ast_code.rb < ast.h
+
+highlevel.h highlevel.cpp : gen_highlevel_ir.rb
+	./gen_highlevel_ir.rb
 
 depend : $(GENERATED_SRCS)
 	$(CXX) $(CXXFLAGS) -M $(SRCS) > depend.mak

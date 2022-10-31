@@ -103,6 +103,10 @@ public:
 
   // ArrayType-only member functions
   virtual unsigned get_array_size() const;
+
+  // These member functions can be used on any non-function type
+  virtual unsigned get_storage_size() const = 0;
+  virtual unsigned get_alignment() const = 0;
 };
 
 // Common base class for QualifiedType, FunctionType, PointerType, and
@@ -190,6 +194,8 @@ public:
   virtual unsigned get_num_members() const;
   virtual const Member &get_member(unsigned index) const;
   virtual unsigned get_array_size() const;
+  virtual unsigned get_storage_size() const;
+  virtual unsigned get_alignment() const;
 };
 
 class BasicType : public Type {
@@ -211,11 +217,14 @@ public:
   virtual bool is_void() const;
   virtual BasicTypeKind get_basic_type_kind() const;
   virtual bool is_signed() const;
+  virtual unsigned get_storage_size() const;
+  virtual unsigned get_alignment() const;
 };
 
 class StructType : public HasMembers {
 private:
   std::string m_name;
+  mutable unsigned m_storage_size, m_alignment;
 
   // value semantics not allowed
   StructType(const StructType &);
@@ -230,6 +239,11 @@ public:
   virtual bool is_same(const Type *other) const;
   virtual std::string as_str() const;
   virtual bool is_struct() const;
+  virtual unsigned get_storage_size() const;
+  virtual unsigned get_alignment() const;
+
+private:
+  void calculate_storage() const;
 };
 
 class FunctionType : public HasBaseType, public HasMembers {
@@ -245,6 +259,8 @@ public:
   virtual bool is_same(const Type *other) const;
   virtual std::string as_str() const;
   virtual bool is_function() const;
+  virtual unsigned get_storage_size() const;
+  virtual unsigned get_alignment() const;
 };
 
 class PointerType : public HasBaseType {
@@ -260,6 +276,8 @@ public:
   virtual bool is_same(const Type *other) const;
   virtual std::string as_str() const;
   virtual bool is_pointer() const;
+  virtual unsigned get_storage_size() const;
+  virtual unsigned get_alignment() const;
 };
 
 class ArrayType : public HasBaseType {
@@ -278,6 +296,8 @@ public:
   virtual std::string as_str() const;
   virtual bool is_array() const;
   virtual unsigned get_array_size() const;
+  virtual unsigned get_storage_size() const;
+  virtual unsigned get_alignment() const;
 };
 
 #endif // TYPE_H

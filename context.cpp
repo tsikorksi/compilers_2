@@ -25,10 +25,13 @@
 #include <cassert>
 #include "exceptions.h"
 #include "node.h"
+#include "ast.h"
 #include "parse.tab.h"
 #include "lex.yy.h"
 #include "parser_state.h"
 #include "semantic_analysis.h"
+#include "symtab.h"
+#include "highlevel_codegen.h"
 #include "context.h"
 
 Context::Context()
@@ -118,11 +121,39 @@ void Context::parse(const std::string &filename) {
 
 void Context::analyze() {
   assert(m_ast != nullptr);
-
-  SemanticAnalysis sema;
-  sema.visit(m_ast);
+  m_sema.visit(m_ast);
 }
 
-void Context::print_symbol_table() {
-  // TODO
+void Context::highlevel_codegen(ModuleCollector *module_collector) {
+  // TODO: do anything that's necessary prior to high-level code gen
+  //       (e.g., storage allocation)
+
+  // TODO: find all of the string constants in the AST
+  //       and call the ModuleCollector's collect_string_constant
+  //       member function for each one
+
+  // collect all of the global variables
+  SymbolTable *globals = m_sema.get_global_symtab();
+  for (auto i = globals->cbegin(); i != globals->cend(); ++i) {
+    Symbol *sym = *i;
+    if (sym->get_kind() == SymbolKind::VARIABLE)
+      module_collector->collect_global_var(sym->get_name(), sym->get_type());
+  }
+
+  // generating high-level code for each function, and then send the
+  // generated high-level InstructionSequence to the ModuleCollector
+  int next_label_num = 0;
+  for (auto i = m_ast->cbegin(); i != m_ast->cend(); ++i) {
+    Node *child = *i;
+    if (child->get_tag() == AST_FUNCTION_DEFINITION) {
+      HighLevelCodegen hl_codegen(next_label_num);
+      hl_codegen.visit(child);
+      std::string fn_name = child->get_kid(1)->get_str();
+      std::shared_ptr<InstructionSequence> hl_iseq = hl_codegen.get_hl_iseq();
+      module_collector->collect_function(fn_name, hl_iseq);
+
+      // make sure local label numbers are not reused between functions
+      next_label_num = hl_codegen.get_next_label_num();
+    }
+  }
 }

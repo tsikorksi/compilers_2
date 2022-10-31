@@ -23,6 +23,8 @@
 
 #include <vector>
 #include <string>
+#include "semantic_analysis.h"
+#include "module_collector.h"
 class Node;
 
 // The Context class gathers together all of the objects/data
@@ -31,6 +33,7 @@ class Node;
 class Context {
 private:
   Node *m_ast;
+  SemanticAnalysis m_sema;
 
   // copy ctor and assignment operator not allowed
   Context(const Context &);
@@ -51,7 +54,7 @@ public:
 
   // TODO: add member functions for semantic analysis, code generation, etc.
   void analyze();
-  void print_symbol_table();
+  void highlevel_codegen(ModuleCollector *module_collector);
 };
 
 #endif // CONTEXT_H
