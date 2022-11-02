@@ -12,6 +12,7 @@
 /ast_visitor.h
 /ast_visitor.cpp
 /ast.cpp
+/ast.h
 /fall2022-tests/
 /.idea/vcs.xml
 /test
