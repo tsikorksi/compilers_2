@@ -45,4 +45,6 @@ private:
     std::string next_label();
     // TODO: additional private member functions
     int next_temp_vreg();
+
+    void visit_cmp(Node *n);
 };

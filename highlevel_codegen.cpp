@@ -96,9 +96,11 @@ void HighLevelCodegen::visit_for_statement(Node *n) {
 void HighLevelCodegen::visit_if_statement(Node *n) {
     // Visit comparison
     visit(n->get_kid(0));
+    std::string label = next_label();
+    m_hl_iseq->append(new Instruction(HINS_cjmp_f, n->get_kid(0)->get_operand() , Operand(Operand::LABEL, label)));
     // Visit body
     visit(n->get_kid(1));
-    m_hl_iseq->define_label(next_label());
+    m_hl_iseq->define_label(label);
 
 
 }
@@ -131,10 +133,46 @@ void HighLevelCodegen::visit_binary_expression(Node *n) {
         case TOK_GT:
         case TOK_GTE:
         case TOK_EQUALITY:
+        case TOK_NOT:
+            visit_cmp(n);
+            break;
         case TOK_LOGICAL_AND:
         case TOK_LOGICAL_OR:
             break;
     }
+}
+
+void HighLevelCodegen::visit_cmp(Node *n) {
+    Operand lhs = n->get_kid(1)->get_operand();
+    Operand rhs = n->get_kid(2)->get_operand();
+
+    Operand dest = Operand(Operand::VREG, next_temp_vreg());
+
+    HighLevelOpcode op;
+
+    switch (n->get_kid(0)->get_tag()) {
+        case TOK_LT:
+            op = HighLevelOpcode::HINS_cmplt_b;
+            break;
+        case TOK_LTE:
+            op = HighLevelOpcode::HINS_cmplte_b;
+            break;
+        case TOK_GT:
+            op = HighLevelOpcode::HINS_cmpgt_b;
+            break;
+        case TOK_GTE:
+            op = HighLevelOpcode::HINS_cmpgte_b;
+            break;
+        case TOK_EQUALITY:
+            op = HighLevelOpcode::HINS_cmpeq_b;
+            break;
+        case TOK_NOT:
+            op = HighLevelOpcode::HINS_cmpneq_b;
+            break;
+    }
+    m_hl_iseq->append(new Instruction(get_opcode(op, n->get_kid(1)->get_type()), dest, lhs, rhs));
+
+    n->set_operand(dest);
 }
 
 
