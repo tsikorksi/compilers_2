@@ -22,7 +22,7 @@ private:
     std::shared_ptr<Type> m_type;
     SymbolTable *m_symtab;
     bool m_is_defined;
-    int m_vreg;
+    int m_vreg = 0;
 
     // value semantics prohibited
     Symbol(const Symbol &);
@@ -45,6 +45,8 @@ public:
 
     int get_vreg() const {return m_vreg;};
     void set_vreg(int m_next_vreg) {m_vreg += m_next_vreg;};
+
+    bool in_register() { return m_vreg; }
 };
 
 class SymbolTable {

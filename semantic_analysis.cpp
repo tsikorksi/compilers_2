@@ -50,7 +50,8 @@ void SemanticAnalysis::visit_variable_declaration(Node *n) {
         if (m_cur_symtab->has_symbol_local(current->get_kid(0)->get_str())) {
             SemanticError::raise(n->get_loc(), "Variable %s already exists", current->get_kid(0)->get_str().c_str());
         }
-        m_cur_symtab->define(SymbolKind::VARIABLE,current->get_kid(0)->get_str(),p);
+        Symbol *sym = m_cur_symtab->define(SymbolKind::VARIABLE,current->get_kid(0)->get_str(),p);
+        n->set_symbol(sym);
     }
 }
 
@@ -232,8 +233,8 @@ void SemanticAnalysis::visit_function_parameter(Node *n) {
     visit(n->get_kid(0));
     type_switcher(n->get_kid(1), n->get_kid(0)->get_type());
     n->set_str(n->get_kid(1)->get_kid(0)->get_str());
-    n->set_type(n->get_kid(0)->get_type());
-
+    auto *sym  = new Symbol (SymbolKind::VARIABLE, n->get_str(), n->get_kid(0)->get_type(), m_cur_symtab, false);
+    n->set_symbol(sym);
 }
 
 void SemanticAnalysis::visit_statement_list(Node *n) {

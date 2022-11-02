@@ -37,7 +37,6 @@ private:
     Operand m_operand;
     Symbol *m_symbol;
     LiteralValue m_lit;
-    int v_reg;
     // copy ctor and assignment operator not supported
     NodeBase(const NodeBase &);
     NodeBase &operator=(const NodeBase &);
@@ -57,10 +56,6 @@ public:
     void set_operand(const Operand& other) { m_operand = other; };
 
     void set_literal_value(const LiteralValue& other) { m_lit = other; };
-
-    int get_vreg(){return v_reg;}
-
-    void set_vreg(int new_vreg) {v_reg = new_vreg;}
 
     std::shared_ptr<Type> get_type() const;
 

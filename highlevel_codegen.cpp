@@ -55,6 +55,7 @@ void HighLevelCodegen::visit_expression_statement(Node *n) {
 }
 
 void HighLevelCodegen::visit_unary_expression(Node *n) {
+    // Move to mem if neccessary
 
 }
 
@@ -112,8 +113,12 @@ void HighLevelCodegen::visit_array_element_ref_expression(Node *n) {
     // TODO: implement
 }
 
+/// Set local operand to the stored vreg of the variable
+/// \param n local node
 void HighLevelCodegen::visit_variable_ref(Node *n) {
-    // TODO: implement
+    Symbol * sym = n->get_symbol();
+    Operand local(Operand::VREG, sym->get_vreg());
+    n->set_operand(local);
 }
 
 void HighLevelCodegen::visit_literal_value(Node *n) {

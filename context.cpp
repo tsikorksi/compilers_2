@@ -126,9 +126,6 @@ void Context::analyze() {
 }
 
 void Context::highlevel_codegen(ModuleCollector *module_collector) {
-    // TODO: do anything that's necessary prior to high-level code gen
-    //       (e.g., storage allocation)
-
     // TODO: find all of the string constants in the AST
     //       and call the ModuleCollector's collect_string_constant
     //       member function for each one

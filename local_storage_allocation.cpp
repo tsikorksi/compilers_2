@@ -10,7 +10,7 @@ LocalStorageAllocation::~LocalStorageAllocation() = default;
 
 void LocalStorageAllocation::visit_declarator_list(Node *n) {
     for (unsigned i = 0; i < n->get_num_kids(); i++) {
-        n->get_kid(i)->set_vreg(next());
+        n->get_kid(i)->get_symbol()->set_vreg(next());
     }
 }
 
@@ -23,7 +23,8 @@ void LocalStorageAllocation::visit_function_definition(Node *n) {
 }
 
 void LocalStorageAllocation::visit_function_parameter(Node *n) {
-    n->set_vreg(next());
+    // TODO: assign to memory if array or struct
+    n->get_symbol()->set_vreg(next());
 }
 
 void LocalStorageAllocation::visit_statement_list(Node *n) {
