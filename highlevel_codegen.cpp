@@ -7,6 +7,7 @@
 #include "grammar_symbols.h"
 #include "exceptions.h"
 #include "highlevel_codegen.h"
+#include "local_storage_allocation.h"
 
 namespace {
 
@@ -64,19 +65,19 @@ void HighLevelCodegen::visit_return_statement(Node *n) {
 
 void HighLevelCodegen::visit_return_expression_statement(Node *n) {
     // A possible implementation:
-/*
-  Node *expr = n->get_kid(0);
 
-  // generate code to evaluate the expression
-  visit(expr);
+    Node *expr = n->get_kid(0);
 
-  // move the computed value to the return value vreg
-  HighLevelOpcode mov_opcode = get_opcode(HINS_mov_b, expr->get_type());
-  m_hl_iseq->append(new Instruction(mov_opcode, Operand(Operand::VREG, LocalStorageAllocation::VREG_RETVAL), expr->get_operand()));
+    // generate code to evaluate the expression
+    visit(expr);
 
-  // jump to the return label
-  visit_return_statement(n);
-*/
+    // move the computed value to the return value vreg
+    HighLevelOpcode mov_opcode = get_opcode(HINS_mov_b, expr->get_type());
+    m_hl_iseq->append(new Instruction(mov_opcode, Operand(Operand::VREG, LocalStorageAllocation::VREG_RETVAL), expr->get_operand()));
+
+    // jump to the return label
+    visit_return_statement(n);
+
 }
 
 void HighLevelCodegen::visit_while_statement(Node *n) {
@@ -118,14 +119,14 @@ void HighLevelCodegen::visit_variable_ref(Node *n) {
 void HighLevelCodegen::visit_literal_value(Node *n) {
     // A partial implementation (note that this won't work correctly
     // for string constants!):
-    /*
+
     LiteralValue val = n->get_literal_value();
     int vreg = next_temp_vreg();
     Operand dest(Operand::VREG, vreg);
     HighLevelOpcode mov_opcode = get_opcode(HINS_mov_b, n->get_type());
     m_hl_iseq->append(new Instruction(mov_opcode, dest, Operand(Operand::IMM_IVAL, val.get_int_value())));
     n->set_operand(dest);
-    */
+
 }
 
 std::string HighLevelCodegen::next_label() {
@@ -139,6 +140,11 @@ void HighLevelCodegen::visit_field_ref_expression(Node *n) {
 
 void HighLevelCodegen::visit_indirect_field_ref_expression(Node *n) {
     ASTVisitor::visit_indirect_field_ref_expression(n);
+}
+
+int HighLevelCodegen::next_temp_vreg() {
+    // TODO: Implement
+    return 0;
 }
 
 // TODO: additional private member functions

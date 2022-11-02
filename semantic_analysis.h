@@ -38,6 +38,8 @@ public:
     virtual void visit_literal_value(Node *n);
     virtual void visit_return_expression_statement(Node *n);
 
+    SymbolTable *get_global_symtab() { return m_global_symtab; }
+
 private:
     // TODO: add helper functions
 
@@ -63,7 +65,6 @@ private:
 
     static Node *implicit_conversion(Node *n, const std::shared_ptr<Type> &type);
 
-    SymbolTable *get_global_symtab() { return m_global_symtab; }
 };
 
 #endif // SEMANTIC_ANALYSIS_H

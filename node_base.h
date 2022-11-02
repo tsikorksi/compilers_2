@@ -24,6 +24,7 @@
 #include <memory>
 #include "type.h"
 #include "symtab.h"
+#include "operand.h"
 #include "literal_value.h"
 
 // The Node class will inherit from this type, so you can use it
@@ -33,7 +34,10 @@
 class NodeBase {
 private:
     std::shared_ptr<Type> m_type;
+    Operand m_operand;
     Symbol *m_symbol;
+    LiteralValue m_lit;
+    int v_reg;
     // copy ctor and assignment operator not supported
     NodeBase(const NodeBase &);
     NodeBase &operator=(const NodeBase &);
@@ -45,6 +49,19 @@ public:
     void set_type(const std::shared_ptr<Type> &type);
     bool has_symbol() const;
     Symbol *get_symbol() const;
+
+    Operand get_operand() { return m_operand; };
+
+    LiteralValue get_literal_value() { return m_lit; }
+
+    void set_operand(const Operand& other) { m_operand = other; };
+
+    void set_literal_value(const LiteralValue& other) { m_lit = other; };
+
+    int get_vreg(){return v_reg;}
+
+    void set_vreg(int new_vreg) {v_reg = new_vreg;}
+
     std::shared_ptr<Type> get_type() const;
 
     bool has_type() const;
