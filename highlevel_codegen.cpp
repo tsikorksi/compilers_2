@@ -94,7 +94,13 @@ void HighLevelCodegen::visit_for_statement(Node *n) {
 }
 
 void HighLevelCodegen::visit_if_statement(Node *n) {
-    // TODO: implement
+    // Visit comparison
+    visit(n->get_kid(0));
+    // Visit body
+    visit(n->get_kid(1));
+    m_hl_iseq->define_label(next_label());
+
+
 }
 
 void HighLevelCodegen::visit_if_else_statement(Node *n) {
@@ -102,9 +108,19 @@ void HighLevelCodegen::visit_if_else_statement(Node *n) {
 }
 
 void HighLevelCodegen::visit_binary_expression(Node *n) {
+    // Visit lhs
+    visit(n->get_kid(1));
+    Operand lhs = n->get_kid(1)->get_operand();
+    // Visit rhs
+    visit(n->get_kid(2));
+    Operand rhs = n->get_kid(2)->get_operand();
+
     switch (n->get_kid(0)->get_tag()) {
-        case TOK_ASSIGN:
+        case TOK_ASSIGN: {
+            HighLevelOpcode mov_opcode = get_opcode(HINS_mov_b, n->get_kid(1)->get_type());
+            m_hl_iseq->append(new Instruction (mov_opcode, lhs, rhs));
             break;
+        }
         case TOK_PLUS:
         case TOK_MINUS:
         case TOK_DIVIDE:
@@ -120,6 +136,8 @@ void HighLevelCodegen::visit_binary_expression(Node *n) {
             break;
     }
 }
+
+
 
 void HighLevelCodegen::visit_function_call_expression(Node *n) {
     // TODO: implement

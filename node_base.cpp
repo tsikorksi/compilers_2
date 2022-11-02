@@ -47,7 +47,14 @@ bool NodeBase::has_type() const {
 }
 
 Symbol *NodeBase::get_symbol() const {
+    assert(has_symbol());
     return m_symbol;
+}
+
+void NodeBase::clear_type_for_symbol(Symbol *sym) {
+    // avoid using
+    m_type = nullptr;
+    m_symbol = sym;
 }
 
 std::shared_ptr<Type> NodeBase::get_type() const {

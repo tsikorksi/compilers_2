@@ -70,6 +70,8 @@ public:
     void un_pointer();
 
     void un_array();
+
+    void clear_type_for_symbol(Symbol *sym);
 };
 
 #endif // NODE_BASE_H

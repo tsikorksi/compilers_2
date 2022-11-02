@@ -44,7 +44,7 @@ public:
     bool is_defined() const;
 
     int get_vreg() const {return m_vreg;};
-    void set_vreg(int m_next_vreg) {m_vreg += m_next_vreg;};
+    void set_vreg(int m_next_vreg) {m_vreg = m_next_vreg;};
 
     bool in_register() { return m_vreg; }
 };
