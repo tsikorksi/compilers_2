@@ -130,7 +130,7 @@ void Context::highlevel_codegen(ModuleCollector *module_collector) {
     //       and call the ModuleCollector's collect_string_constant
     //       member function for each one
 
-    // collect all of the global variables
+    // collect all the global variables
     SymbolTable *globals = m_sema.get_global_symtab();
     for (auto i = globals->cbegin(); i != globals->cend(); ++i) {
         Symbol *sym = *i;
@@ -145,7 +145,7 @@ void Context::highlevel_codegen(ModuleCollector *module_collector) {
         Node *child = *i;
         if (child->get_tag() == AST_FUNCTION_DEFINITION) {
             LocalStorageAllocation lc_alloc;
-            HighLevelCodegen hl_codegen(next_label_num);
+            HighLevelCodegen hl_codegen(next_label_num, lc_alloc.next());
             lc_alloc.visit(child);
             hl_codegen.visit(child);
             std::string fn_name = child->get_kid(1)->get_str();

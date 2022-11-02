@@ -23,8 +23,8 @@ namespace {
 
 }
 
-HighLevelCodegen::HighLevelCodegen(int next_label_num)
-        : m_next_label_num(next_label_num), m_hl_iseq(new InstructionSequence()) {
+HighLevelCodegen::HighLevelCodegen(int next_label_num, int next_vreg)
+        : m_next_vreg(next_vreg), m_next_label_num(next_label_num), m_hl_iseq(new InstructionSequence()) {
 }
 
 HighLevelCodegen::~HighLevelCodegen() {
@@ -51,7 +51,7 @@ void HighLevelCodegen::visit_function_definition(Node *n) {
 }
 
 void HighLevelCodegen::visit_expression_statement(Node *n) {
-    // TODO: implement
+    visit(n->get_kid(0));
 }
 
 void HighLevelCodegen::visit_unary_expression(Node *n) {
@@ -102,7 +102,23 @@ void HighLevelCodegen::visit_if_else_statement(Node *n) {
 }
 
 void HighLevelCodegen::visit_binary_expression(Node *n) {
-    // TODO: implement
+    switch (n->get_kid(0)->get_tag()) {
+        case TOK_ASSIGN:
+            break;
+        case TOK_PLUS:
+        case TOK_MINUS:
+        case TOK_DIVIDE:
+        case TOK_ASTERISK:
+            break;
+        case TOK_LT:
+        case TOK_LTE:
+        case TOK_GT:
+        case TOK_GTE:
+        case TOK_EQUALITY:
+        case TOK_LOGICAL_AND:
+        case TOK_LOGICAL_OR:
+            break;
+    }
 }
 
 void HighLevelCodegen::visit_function_call_expression(Node *n) {
@@ -148,8 +164,9 @@ void HighLevelCodegen::visit_indirect_field_ref_expression(Node *n) {
 }
 
 int HighLevelCodegen::next_temp_vreg() {
-    // TODO: Implement
-    return 0;
+    int temp = m_next_vreg;
+    m_next_vreg++;
+    return temp;
 }
 
 // TODO: additional private member functions
