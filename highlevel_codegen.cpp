@@ -1,9 +1,7 @@
 #include "node.h"
 #include "instruction.h"
 #include "highlevel.h"
-#include "ast.h"
 #include "parse.tab.h"
-#include "grammar_symbols.h"
 #include "exceptions.h"
 #include "highlevel_codegen.h"
 #include "local_storage_allocation.h"
@@ -90,7 +88,7 @@ void HighLevelCodegen::visit_while_statement(Node *n) {
     m_hl_iseq->append(new Instruction(HINS_cjmp_t, n->get_kid(0)->get_operand() , Operand(Operand::LABEL, jump_end)));
     // visit body
     visit(n->get_kid(1));
-    m_hl_iseq->append(new Instruction(HINS_jmp, n->get_kid(0)->get_operand() , Operand(Operand::LABEL, jump_back)));
+    m_hl_iseq->append(new Instruction(HINS_jmp, Operand(Operand::LABEL, jump_back)));
     // Set point to jump to when no longer true
     m_hl_iseq->define_label(jump_end);
 
@@ -110,7 +108,25 @@ void HighLevelCodegen::visit_do_while_statement(Node *n) {
 }
 
 void HighLevelCodegen::visit_for_statement(Node *n) {
-    // TODO: implement
+    // evaluate assignment
+    visit(n->get_kid(0));
+    std::string jump_back = next_label();
+    std::string jump_out = next_label();
+    // set return point for loop
+    m_hl_iseq->define_label(jump_back);
+    // evaluate comparison, leave if false
+    visit(n->get_kid(1));
+    m_hl_iseq->append(new Instruction(HINS_cjmp_f, n->get_kid(1)->get_operand() , Operand(Operand::LABEL, jump_out)));
+    // execute body
+    visit(n->get_kid(3));
+    // execute change to loop counter
+    visit(n->get_kid(2));
+
+    // jump back to start
+    m_hl_iseq->append(new Instruction(HINS_jmp, Operand(Operand::LABEL, jump_back)));
+    // set label for exiting loop
+    m_hl_iseq->define_label(jump_out);
+
 }
 
 void HighLevelCodegen::visit_if_statement(Node *n) {
@@ -126,7 +142,8 @@ void HighLevelCodegen::visit_if_statement(Node *n) {
 }
 
 void HighLevelCodegen::visit_if_else_statement(Node *n) {
-    // TODO: implement
+    visit_if_statement(n);
+    visit(n->get_kid(2));
 }
 
 void HighLevelCodegen::visit_binary_expression(Node *n) {
@@ -319,5 +336,3 @@ int HighLevelCodegen::next_temp_vreg() {
     m_next_vreg++;
     return temp;
 }
-
-// TODO: additional private member functions
