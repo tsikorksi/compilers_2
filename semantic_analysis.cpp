@@ -516,7 +516,6 @@ void SemanticAnalysis::visit_variable_ref(Node *n) {
     //  annotate with symbol
     if (m_cur_symtab->has_symbol_recursive(n->get_kid(0)->get_str())) {
         n->set_symbol(m_cur_symtab->lookup_recursive(n->get_kid(0)->get_str()));
-
     } else if (m_cur_symtab->has_symbol_recursive("struct " + n->get_kid(0)->get_str())) {
         // Must also search in structs
         n->set_symbol(m_cur_symtab->lookup_recursive("struct " + n->get_kid(0)->get_str()));
