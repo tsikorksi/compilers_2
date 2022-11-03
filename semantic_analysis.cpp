@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <memory>
 #include <utility>
+#include <iostream>
 #include "grammar_symbols.h"
 #include "parse.tab.h"
 #include "node.h"
@@ -224,7 +225,8 @@ void SemanticAnalysis::visit_function_declaration(Node *n) {
     if (m_cur_symtab->has_symbol_local(n->get_kid(1)->get_str())) {
         SemanticError::raise(n->get_loc(), "Function with same name declared in same scope");
     }
-    m_cur_symtab->declare(SymbolKind::FUNCTION, n->get_kid(1)->get_str(), n->get_kid(0)->get_type());
+    Symbol *sym = m_cur_symtab->declare(SymbolKind::FUNCTION, n->get_kid(1)->get_str(), n->get_kid(0)->get_type());
+    n->set_symbol(sym);
 }
 
 void SemanticAnalysis::visit_function_parameter(Node *n) {
