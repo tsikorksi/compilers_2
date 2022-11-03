@@ -50,8 +50,7 @@ void SemanticAnalysis::visit_variable_declaration(Node *n) {
         if (m_cur_symtab->has_symbol_local(current->get_kid(0)->get_str())) {
             SemanticError::raise(n->get_loc(), "Variable %s already exists", current->get_kid(0)->get_str().c_str());
         }
-        Symbol *sym = m_cur_symtab->define(SymbolKind::VARIABLE,current->get_kid(0)->get_str(),p);
-        current->clear_type_for_symbol(sym);
+        current->clear_type_for_symbol(m_cur_symtab->define(SymbolKind::VARIABLE,current->get_kid(0)->get_str(),p));
     }
 }
 

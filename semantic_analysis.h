@@ -41,8 +41,6 @@ public:
     SymbolTable *get_global_symtab() { return m_global_symtab; }
 
 private:
-    // TODO: add helper functions
-
     void enter_scope(std::string name);
 
     void leave_scope();
