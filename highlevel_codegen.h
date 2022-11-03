@@ -47,4 +47,8 @@ private:
     int next_temp_vreg();
 
     void visit_cmp(Node *n);
+
+    void visit_math(Node *n);
+
+    void visit_logic(Node *n);
 };
