@@ -50,6 +50,7 @@ SymbolTable::SymbolTable(SymbolTable *parent, std::string name)
   : m_parent(parent)
   , m_has_params(false) {
     m_scope_name = std::move(name);
+
 }
 
 

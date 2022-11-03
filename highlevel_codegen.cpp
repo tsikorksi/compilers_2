@@ -161,51 +161,19 @@ void HighLevelCodegen::visit_binary_expression(Node *n) {
     visit(n->get_kid(2));
     Operand rhs = n->get_kid(2)->get_operand();
 
-    switch (n->get_kid(0)->get_tag()) {
-        case TOK_ASSIGN: {
-            HighLevelOpcode mov_opcode = get_opcode(HINS_mov_b, n->get_kid(1)->get_type());
-            m_hl_iseq->append(new Instruction (mov_opcode, lhs, rhs));
-            n->set_operand(lhs);
-            return;
-        }
-            // Maybe move functions back into this one, perhaps unnecessary
-        case TOK_PLUS:
-        case TOK_MINUS:
-        case TOK_DIVIDE:
-        case TOK_ASTERISK:
-            visit_math(n);
-            break;
-        case TOK_LT:
-        case TOK_LTE:
-        case TOK_GT:
-        case TOK_GTE:
-        case TOK_EQUALITY:
-        case TOK_NOT:
-            visit_cmp(n);
-            break;
-        case TOK_LOGICAL_AND:
-        case TOK_LOGICAL_OR:
-            visit_logic(n);
-            break;
+    if (n->get_kid(0)->get_tag() == TOK_ASSIGN) {
+        // Assuming we are in assign, we don't need to know anything else
+        HighLevelOpcode mov_opcode = get_opcode(HINS_mov_b, n->get_kid(1)->get_type());
+        // move one into the other
+        m_hl_iseq->append(new Instruction (mov_opcode, lhs, rhs));
+        n->set_operand(lhs);
+        return;
     }
-}
 
-// TODO: possibly remove these functions
-
-void HighLevelCodegen::visit_math(Node *n) {
-
-    // get operand of both sides
-    Operand lhs = n->get_kid(1)->get_operand();
-    Operand rhs = n->get_kid(2)->get_operand();
-
-
-    // set destination for true or false
     Operand dest = Operand(Operand::VREG, next_temp_vreg());
-
     HighLevelOpcode op;
 
-
-    // determine base opcode
+    // Figure out which operator we are using
     switch (n->get_kid(0)->get_tag()) {
         case TOK_PLUS:
             op = HINS_add_b;
@@ -219,28 +187,6 @@ void HighLevelCodegen::visit_math(Node *n) {
         case TOK_ASTERISK:
             op = HINS_mul_b;
             break;
-    }
-
-    // add to instruction
-    m_hl_iseq->append(new Instruction(get_opcode(op, n->get_kid(1)->get_type()), dest, lhs, rhs));
-
-    n->set_operand(dest);
-}
-
-
-void HighLevelCodegen::visit_cmp(Node *n) {
-
-    // get operand of both sides
-    Operand lhs = n->get_kid(1)->get_operand();
-    Operand rhs = n->get_kid(2)->get_operand();
-
-    // set destination for true or false
-    Operand dest = Operand(Operand::VREG, next_temp_vreg());
-
-    HighLevelOpcode op;
-
-    // determine base opcode
-    switch (n->get_kid(0)->get_tag()) {
         case TOK_LT:
             op = HighLevelOpcode::HINS_cmplt_b;
             break;
@@ -259,27 +205,6 @@ void HighLevelCodegen::visit_cmp(Node *n) {
         case TOK_NOT:
             op = HighLevelOpcode::HINS_cmpneq_b;
             break;
-    }
-
-    // add to instruction
-    m_hl_iseq->append(new Instruction(get_opcode(op, n->get_kid(1)->get_type()), dest, lhs, rhs));
-
-    n->set_operand(dest);
-}
-
-void HighLevelCodegen::visit_logic(Node *n) {
-
-    // get operand of both sides
-    Operand lhs = n->get_kid(1)->get_operand();
-    Operand rhs = n->get_kid(2)->get_operand();
-
-    // set destination for true or false
-    Operand dest = Operand(Operand::VREG, next_temp_vreg());
-
-    HighLevelOpcode op;
-
-    // determine base opcode
-    switch (n->get_kid(0)->get_tag()) {
         case TOK_LOGICAL_AND:
             op = HINS_and_b;
             break;
@@ -287,14 +212,10 @@ void HighLevelCodegen::visit_logic(Node *n) {
             op = HINS_or_b;
             break;
     }
-
-    // add to instruction
+    // Make the change
     m_hl_iseq->append(new Instruction(get_opcode(op, n->get_kid(1)->get_type()), dest, lhs, rhs));
-
     n->set_operand(dest);
 }
-
-
 
 void HighLevelCodegen::visit_function_call_expression(Node *n) {
     std::string func = n->get_kid(0)->get_symbol()->get_name();
