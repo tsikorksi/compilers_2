@@ -2,7 +2,6 @@
 #include <algorithm>
 #include <memory>
 #include <utility>
-#include <iostream>
 #include "grammar_symbols.h"
 #include "parse.tab.h"
 #include "node.h"

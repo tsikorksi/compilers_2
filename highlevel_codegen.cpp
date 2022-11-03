@@ -137,13 +137,20 @@ void HighLevelCodegen::visit_if_statement(Node *n) {
     // Visit body
     visit(n->get_kid(1));
     m_hl_iseq->define_label(label);
-
-
 }
 
 void HighLevelCodegen::visit_if_else_statement(Node *n) {
-    visit_if_statement(n);
+    // Visit comparison
+    visit(n->get_kid(0));
+    std::string label = next_label();
+    std::string skip_false = next_label();
+    m_hl_iseq->append(new Instruction(HINS_cjmp_f, n->get_kid(0)->get_operand() , Operand(Operand::LABEL, label)));
+    // Visit body
+    visit(n->get_kid(1));
+    m_hl_iseq->append(new Instruction(HINS_jmp, Operand(Operand::LABEL, skip_false)));
+    m_hl_iseq->define_label(label);
     visit(n->get_kid(2));
+    m_hl_iseq->define_label(skip_false);
 }
 
 void HighLevelCodegen::visit_binary_expression(Node *n) {
@@ -290,7 +297,20 @@ void HighLevelCodegen::visit_logic(Node *n) {
 
 
 void HighLevelCodegen::visit_function_call_expression(Node *n) {
-    // TODO: implement
+    std::string func = n->get_kid(0)->get_symbol()->get_name();
+    visit_children(n->get_kid(1));
+    if (n->get_kid(1)->get_num_kids() > 9) {
+        // NEED TO ALLOCATE TO MEM
+    }
+    else {
+        for (unsigned i = 0; i < n->get_kid(1)->get_num_kids(); i++) {
+            Operand param = n->get_kid(1)->get_kid(i)->get_operand();
+            HighLevelOpcode mov_opcode = get_opcode(HINS_mov_b, n->get_kid(1)->get_kid(i)->get_type());
+            m_hl_iseq->append(new Instruction(mov_opcode, Operand(Operand::VREG, i+1), param));
+        }
+    }
+    m_hl_iseq->append(new Instruction(HINS_call, Operand(Operand::LABEL, func)));
+    n->set_operand(Operand(Operand::VREG, 0));
 }
 
 void HighLevelCodegen::visit_array_element_ref_expression(Node *n) {
