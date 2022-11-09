@@ -31,6 +31,10 @@ public:
     int next();
 
 private:
+
+    unsigned int assign_array(const std::shared_ptr<Type>& type);
+
+    void assign_variable_storage(Node *n);
 };
 
 #endif // LOCAL_STORAGE_ALLOCATION_H

@@ -235,7 +235,10 @@ void HighLevelCodegen::visit_function_call_expression(Node *n) {
 }
 
 void HighLevelCodegen::visit_array_element_ref_expression(Node *n) {
-    // TODO: implement
+    //  sconv_lq vr14, vr12
+    //	mul_q    vr15, vr14, $4
+    //	add_q    vr16, vr10, vr15
+    //	mov_l    vr18, (vr16)
 }
 
 /// Set local operand to the stored vreg of the variable

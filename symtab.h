@@ -23,6 +23,7 @@ private:
     SymbolTable *m_symtab;
     bool m_is_defined;
     int m_vreg = -1;
+    unsigned m_offset = -1;
 
     // value semantics prohibited
     Symbol(const Symbol &);
@@ -45,6 +46,9 @@ public:
 
     int get_vreg() {return m_vreg;};
     void set_vreg(int m_next_vreg) {m_vreg = m_next_vreg;};
+
+    unsigned get_offset() {return m_offset;};
+    void set_offset(unsigned m_next_offset) {m_offset = m_next_offset;};
 
     bool in_register() { return m_vreg; }
 };

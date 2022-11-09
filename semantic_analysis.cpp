@@ -2,7 +2,6 @@
 #include <algorithm>
 #include <memory>
 #include <utility>
-#include <iostream>
 #include "grammar_symbols.h"
 #include "parse.tab.h"
 #include "node.h"
@@ -505,6 +504,7 @@ void SemanticAnalysis::visit_indirect_field_ref_expression(Node *n) {
 
 void SemanticAnalysis::visit_array_element_ref_expression(Node *n) {
     visit(n->get_kid(0));
+    visit(n->get_kid(1));
     n->set_type(n->get_kid(0)->get_type());
     if (n->get_type()->is_pointer()) {
         n->un_pointer();
