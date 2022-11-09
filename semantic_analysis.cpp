@@ -234,8 +234,7 @@ void SemanticAnalysis::visit_function_parameter(Node *n) {
     visit(n->get_kid(0));
     type_switcher(n->get_kid(1), n->get_kid(0)->get_type());
     n->set_str(n->get_kid(1)->get_kid(0)->get_str());
-    auto *sym  = new Symbol (SymbolKind::VARIABLE, n->get_str(), n->get_kid(0)->get_type(), m_cur_symtab, false);
-    //auto *sym  = m_cur_symtab->define(SymbolKind::VARIABLE, n->get_str(), n->get_kid(0)->get_type());
+    auto *sym  = new Symbol (SymbolKind::VARIABLE, n->get_str(), n->get_kid(1)->get_type(), m_cur_symtab, false);
     n->set_symbol(sym);
 }
 
