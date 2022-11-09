@@ -24,7 +24,7 @@ void LocalStorageAllocation::visit_function_definition(Node *n) {
     visit_children(n->get_kid(2));
     // Visit statement list
     visit(n->get_kid(3));
-    std::cout << "/* function '" <<n->get_symbol()->get_name() << "' allocated " << m_next_vreg - 1 << " vreg's */\n" << std::endl;
+    std::cout << "/* function '" <<n->get_symbol()->get_name() << "' allocated " << m_next_vreg << " vreg's */\n" << std::endl;
 
 }
 
@@ -40,6 +40,7 @@ void LocalStorageAllocation::visit_statement_list(Node *n) {
 }
 
 int LocalStorageAllocation::next(){
-    m_next_vreg += 1;
-    return m_next_vreg;
+    int temp = m_next_vreg;
+    m_next_vreg++;
+    return temp;
 }

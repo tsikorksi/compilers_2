@@ -97,6 +97,7 @@ public:
     // Operations that search recursively starting from the current (local)
     // scope and expanding to outer scopes as necessary
     Symbol *lookup_recursive(const std::string &name) const;
+    Symbol *lookup_recursive(const std::string &name, SymbolKind type) const;
 
     // This can be called on the symbol table representing the function parameter
     // scope of a function to record the exact type of the function

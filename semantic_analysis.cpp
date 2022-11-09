@@ -449,9 +449,10 @@ void SemanticAnalysis::visit_function_call_expression(Node *n) {
 
 bool SemanticAnalysis::check_different(const std::shared_ptr<Type>& a, const std::shared_ptr<Type>& b) {
     // Clean Param vs Arg dif checker
-    if (a->is_pointer() != b->is_pointer()) {
-        return false;
-    } else if (a->is_array() != b->is_array()) {
+    if (a->is_pointer() != b->is_pointer() || a->is_array() != b->is_array()) {
+        if ((a->is_pointer() && b->is_array()) || (a->is_array() && b->is_pointer())){
+            return true;
+        }
         return false;
     } else if (a->is_struct() != b->is_struct()) {
         return false;
@@ -557,7 +558,7 @@ void SemanticAnalysis::visit_literal_value(Node *n) {
 
 void SemanticAnalysis::visit_return_expression_statement(Node *n) {
     visit(n->get_kid(0));
-    std::shared_ptr<Type> return_type = m_cur_symtab->lookup_recursive(m_cur_symtab->get_name())->get_type()->get_base_type();
+    std::shared_ptr<Type> return_type = m_cur_symtab->lookup_recursive(m_cur_symtab->get_name(), SymbolKind::FUNCTION)->get_type()->get_base_type();
     // check name of symbol table
     if (!return_type->is_same(n->get_kid(0)->get_type().get())) {
         SemanticError::raise(n->get_loc(), "Return type does not match function declaration");
