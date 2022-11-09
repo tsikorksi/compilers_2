@@ -31,7 +31,6 @@ public:
     int next();
 
 private:
-    // TODO: add private member functions
 };
 
 #endif // LOCAL_STORAGE_ALLOCATION_H

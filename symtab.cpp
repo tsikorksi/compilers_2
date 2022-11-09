@@ -55,9 +55,6 @@ SymbolTable::SymbolTable(SymbolTable *parent, std::string name)
 
 
 SymbolTable::~SymbolTable() {
-  for (auto i = m_symbols.begin(); i != m_symbols.end(); ++i) {
-    delete *i;
-  }
 }
 
 SymbolTable *SymbolTable::get_parent() const {

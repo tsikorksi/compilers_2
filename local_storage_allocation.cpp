@@ -40,5 +40,6 @@ void LocalStorageAllocation::visit_statement_list(Node *n) {
 }
 
 int LocalStorageAllocation::next(){
-    return m_next_vreg++;
+    m_next_vreg += 1;
+    return m_next_vreg;
 };

@@ -22,7 +22,9 @@
 #include <memory>
 #include "node_base.h"
 
-NodeBase::NodeBase() = default;
+NodeBase::NodeBase() : m_symbol(nullptr){
+
+}
 
 NodeBase::~NodeBase() = default;
 
