@@ -83,6 +83,8 @@ public:
     Symbol *lookup_local(const std::string &name) const;
     Symbol *declare(SymbolKind sym_kind, const std::string &name, const std::shared_ptr<Type> &type);
     Symbol *define(SymbolKind sym_kind, const std::string &name, const std::shared_ptr<Type> &type);
+    Symbol *define(Symbol *sym);
+
 
     // Iterate through the symbol table entries in the order in which they were added
     // to the symbol table. This is important for struct types, where the representation

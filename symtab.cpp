@@ -102,6 +102,11 @@ Symbol *SymbolTable::define(SymbolKind sym_kind, const std::string &name, const 
   return sym;
 }
 
+Symbol *SymbolTable::define(Symbol * sym) {
+    add_symbol(sym);
+    return sym;
+}
+
 Symbol *SymbolTable::lookup_recursive(const std::string &name) const {
   const SymbolTable *scope = this;
 
@@ -139,20 +144,20 @@ void SymbolTable::add_symbol(Symbol *sym) {
   m_lookup[sym->get_name()] = pos;
 
   // Assignment 3 only: print out symbol table entries as they are added
-  //printf("%d|", get_depth());
-  //printf("%s|", sym->get_name().c_str());
-  //switch (sym->get_kind()) {
-  //case SymbolKind::FUNCTION:
-  //  printf("function|"); break;
-  //case SymbolKind::VARIABLE:
-  //  printf("variable|"); break;
-  //case SymbolKind::TYPE:
-  //  printf("type|"); break;
-  //default:
-  // assert(false);
-  //}
-
-  //printf("%s\n", sym->get_type()->as_str().c_str());
+//  printf("%d|", get_depth());
+//  printf("%s|", sym->get_name().c_str());
+//  switch (sym->get_kind()) {
+//  case SymbolKind::FUNCTION:
+//    printf("function|"); break;
+//  case SymbolKind::VARIABLE:
+//    printf("variable|"); break;
+//  case SymbolKind::TYPE:
+//    printf("type|"); break;
+//  default:
+//   assert(false);
+//  }
+//
+//  printf("%s\n", sym->get_type()->as_str().c_str());
 }
 
 int SymbolTable::get_depth() const {

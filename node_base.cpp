@@ -55,7 +55,6 @@ Symbol *NodeBase::get_symbol() const {
 
 void NodeBase::clear_type_for_symbol(Symbol *sym) {
     // avoid using
-    m_type = nullptr;
     m_symbol = sym;
 }
 

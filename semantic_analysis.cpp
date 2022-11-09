@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <memory>
 #include <utility>
+#include <iostream>
 #include "grammar_symbols.h"
 #include "parse.tab.h"
 #include "node.h"
@@ -15,7 +16,7 @@ SemanticAnalysis::SemanticAnalysis()
 }
 
 SemanticAnalysis::~SemanticAnalysis()  {
-    delete m_global_symtab;
+
 }
 
 void SemanticAnalysis::visit_struct_type(Node *n) {
@@ -203,7 +204,7 @@ void SemanticAnalysis::define_parameters(Node *n) {
             SemanticError::raise(n->get_loc(), "Cannot have 2 params of the same name");
         }
         // add to local scope
-        m_cur_symtab->define(SymbolKind::VARIABLE, param.get_name(), param.get_type());
+        m_cur_symtab->define(n->get_kid(2)->get_kid(i)->get_symbol());
     }
 }
 
@@ -234,6 +235,7 @@ void SemanticAnalysis::visit_function_parameter(Node *n) {
     type_switcher(n->get_kid(1), n->get_kid(0)->get_type());
     n->set_str(n->get_kid(1)->get_kid(0)->get_str());
     auto *sym  = new Symbol (SymbolKind::VARIABLE, n->get_str(), n->get_kid(0)->get_type(), m_cur_symtab, false);
+    //auto *sym  = m_cur_symtab->define(SymbolKind::VARIABLE, n->get_str(), n->get_kid(0)->get_type());
     n->set_symbol(sym);
 }
 

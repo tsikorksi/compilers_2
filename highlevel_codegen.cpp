@@ -51,7 +51,7 @@ void HighLevelCodegen::visit_expression_statement(Node *n) {
 }
 
 void HighLevelCodegen::visit_unary_expression(Node *n) {
-    // Move to mem if neccessary
+    // TODO: Move to mem if neccessary
 
 }
 
