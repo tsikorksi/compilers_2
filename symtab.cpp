@@ -3,7 +3,6 @@
 #include <utility>
 #include "symtab.h"
 
-#define DISPLAY_SYMTAB
 
 
 ////////////////////////////////////////////////////////////////////////
@@ -15,7 +14,7 @@ Symbol::Symbol(SymbolKind kind, const std::string &name, const std::shared_ptr<T
         , m_name(name)
         , m_type(type)
         , m_symtab(symtab)
-        , m_is_defined(is_defined) {
+        , m_is_defined(is_defined),m_vreg(-1), m_offset(-1) {
 }
 
 Symbol::~Symbol() {

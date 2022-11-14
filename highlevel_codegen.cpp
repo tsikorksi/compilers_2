@@ -31,10 +31,10 @@ void HighLevelCodegen::visit_function_definition(Node *n) {
     std::string fn_name = n->get_kid(1)->get_str();
     m_return_label_name = ".L" + fn_name + "_return";
 
-    unsigned total_local_storage = 0U;
-/*
-  total_local_storage = n->get_total_local_storage();
-*/
+    unsigned total_local_storage;
+
+    total_local_storage = n->get_symbol()->get_offset();
+
 
     m_hl_iseq->append(new Instruction(HINS_enter, Operand(Operand::IMM_IVAL, total_local_storage)));
 
@@ -235,10 +235,45 @@ void HighLevelCodegen::visit_function_call_expression(Node *n) {
 }
 
 void HighLevelCodegen::visit_array_element_ref_expression(Node *n) {
-    //  sconv_lq vr14, vr12
-    //	mul_q    vr15, vr14, $4
-    //	add_q    vr16, vr10, vr15
-    //	mov_l    vr18, (vr16)
+//    localaddr vr11, $0
+//    mov_l    vr12, $0
+//    sconv_lq vr13, vr12
+//    mul_q    vr14, vr13, $4
+//    add_q    vr15, vr11, vr14
+//    mov_l    vr16, $1
+//    mov_l    (vr15), vr16
+
+    std::shared_ptr<Type> element_type = n->get_type();
+
+    // add offset to local variable
+    Operand address_register(Operand::VREG, next_temp_vreg());
+    m_hl_iseq->append(new Instruction(HINS_localaddr, address_register, Operand(Operand::IMM_IVAL, n->get_kid(0)->get_symbol()->get_offset())));
+
+    // Move the value of the element location to
+    Operand elem (Operand::IMM_IVAL, n->get_kid(1)->get_literal_value().get_int_value());
+    HighLevelOpcode mov_opcode = get_opcode(HINS_mov_b, element_type);
+    Operand dest (Operand::VREG, next_temp_vreg());
+    m_hl_iseq->append(new Instruction(mov_opcode, dest , elem));
+
+    // upgrade it to make space for multiplication
+    Operand dest_up (Operand::VREG, next_temp_vreg());
+    HighLevelOpcode upgrade = get_opcode(HINS_sconv_bl, element_type);
+    m_hl_iseq->append(new Instruction(upgrade, dest_up, dest));
+
+    // multiply to get to actual address of local variable
+    Operand mult_dest(Operand::VREG, next_temp_vreg());
+    Operand size_element(Operand::IMM_IVAL, n->get_type()->get_storage_size());
+    HighLevelOpcode mul_opcode = get_opcode(HINS_mul_b, element_type);
+    m_hl_iseq->append(new Instruction(mul_opcode, mult_dest, dest_up, size_element));
+
+    // add value of offset
+    Operand final_dest(Operand::VREG, next_temp_vreg());
+    HighLevelOpcode add_opcode = get_opcode(HINS_add_b, element_type);
+    m_hl_iseq->append(new Instruction(add_opcode, final_dest, mult_dest, address_register));
+
+    // set Operand to the location of the destination
+    n->set_operand(final_dest.to_memref());
+
 }
 
 /// Set local operand to the stored vreg of the variable
