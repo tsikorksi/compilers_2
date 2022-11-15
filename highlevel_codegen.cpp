@@ -12,7 +12,7 @@ namespace {
     HighLevelOpcode get_opcode(HighLevelOpcode base_opcode, const std::shared_ptr<Type> &type) {
         if (type->is_basic())
             return static_cast<HighLevelOpcode>(int(base_opcode) + int(type->get_basic_type_kind()));
-        else if (type->is_pointer())
+        else if (type->is_pointer() || type->is_array())
             return static_cast<HighLevelOpcode>(int(base_opcode) + int(BasicTypeKind::LONG));
         else
             RuntimeError::raise("attempt to use type '%s' as data in opcode selection", type->as_str().c_str());
@@ -51,8 +51,15 @@ void HighLevelCodegen::visit_expression_statement(Node *n) {
 }
 
 void HighLevelCodegen::visit_unary_expression(Node *n) {
-    // TODO: Move to mem if neccessary
-
+    visit(n->get_kid(1));
+    switch(n->get_kid(0)->get_tag()) {
+        case TOK_AMPERSAND:
+            n->set_operand(n->get_kid(1)->get_operand().to_memref());
+            break;
+        case TOK_ASTERISK:
+            n->set_operand(n->get_kid(1)->get_operand());
+            break;
+    }
 }
 
 void HighLevelCodegen::visit_return_statement(Node *n) {
@@ -235,22 +242,15 @@ void HighLevelCodegen::visit_function_call_expression(Node *n) {
 }
 
 void HighLevelCodegen::visit_array_element_ref_expression(Node *n) {
-//    localaddr vr11, $0
-//    mov_l    vr12, $0
-//    sconv_lq vr13, vr12
-//    mul_q    vr14, vr13, $4
-//    add_q    vr15, vr11, vr14
-//    mov_l    vr16, $1
-//    mov_l    (vr15), vr16
-
-    std::shared_ptr<Type> element_type = n->get_type();
+   std::shared_ptr<Type> element_type = n->get_type();
 
     // add offset to local variable
     Operand address_register(Operand::VREG, next_temp_vreg());
     m_hl_iseq->append(new Instruction(HINS_localaddr, address_register, Operand(Operand::IMM_IVAL, n->get_kid(0)->get_symbol()->get_offset())));
 
     // Move the value of the element location to
-    Operand elem (Operand::IMM_IVAL, n->get_kid(1)->get_literal_value().get_int_value());
+    visit(n->get_kid(1));
+    Operand elem = n->get_kid(1)->get_operand();
     HighLevelOpcode mov_opcode = get_opcode(HINS_mov_b, element_type);
     Operand dest (Operand::VREG, next_temp_vreg());
     m_hl_iseq->append(new Instruction(mov_opcode, dest , elem));
@@ -287,12 +287,27 @@ void HighLevelCodegen::visit_variable_ref(Node *n) {
 void HighLevelCodegen::visit_literal_value(Node *n) {
     // A partial implementation (note that this won't work correctly
     // for string constants!):
-
     LiteralValue val = n->get_literal_value();
+
+    Operand rhs;
+
+    switch (val.get_kind()) {
+        case LiteralValueKind::INTEGER:
+            rhs = Operand(Operand::IMM_IVAL, val.get_int_value());
+            break;
+        case LiteralValueKind::CHARACTER:
+            Operand(Operand::IMM_LABEL, val.get_char_value());
+            break;
+        case LiteralValueKind::STRING:
+            rhs = Operand(Operand::IMM_LABEL, val.get_str_value());
+            break;
+        case LiteralValueKind::NONE:
+            break;
+    }
     int vreg = next_temp_vreg();
     Operand dest(Operand::VREG, vreg);
     HighLevelOpcode mov_opcode = get_opcode(HINS_mov_b, n->get_type());
-    m_hl_iseq->append(new Instruction(mov_opcode, dest, Operand(Operand::IMM_IVAL, val.get_int_value())));
+    m_hl_iseq->append(new Instruction(mov_opcode, dest, rhs));
     n->set_operand(dest);
 
 }
@@ -303,7 +318,11 @@ std::string HighLevelCodegen::next_label() {
 }
 
 void HighLevelCodegen::visit_field_ref_expression(Node *n) {
-    ASTVisitor::visit_field_ref_expression(n);
+    // 	localaddr vr10, $0
+    //	mov_q    vr11, $4
+    //	add_q    vr12, vr10, vr11
+    //	mov_l    vr13, $3
+    //	mov_l    (vr12), vr13
 }
 
 void HighLevelCodegen::visit_indirect_field_ref_expression(Node *n) {
