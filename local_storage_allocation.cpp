@@ -4,16 +4,28 @@
 #include "local_storage_allocation.h"
 
 LocalStorageAllocation::LocalStorageAllocation()
-        : m_storage_calc(StorageCalculator::UNION, 0)
+        : m_storage_calc(StorageCalculator::STRUCT, 0)
         , m_total_local_storage(0U), m_next_vreg(VREG_FIRST_LOCAL) {
 }
 
 LocalStorageAllocation::~LocalStorageAllocation() = default;
 
 void LocalStorageAllocation::visit_declarator_list(Node *n) {
-    for (unsigned i = 0; i < n->get_num_kids(); i++) {
-        assign_variable_storage(n->get_kid(i) ,n->get_kid(i));
+    if (n->has_type() && n->get_type()->is_struct()) {
+        StorageCalculator struct_calc;
+        for (unsigned i = 0; i < n->get_num_kids(); i++) {
+            struct_calc.add_field(n->get_kid(i)->get_type());
+        }
+        struct_calc.finish();
+        m_storage_calc.add_field(n->get_type());
+        std::cout << "/* struct '" << n->get_str() << "' allocated " << struct_calc.get_size() << " bytes " <<  " */" << std::endl;
+
+    } else {
+        for (unsigned i = 0; i < n->get_num_kids(); i++) {
+            assign_variable_storage(n->get_kid(i) ,n->get_kid(i));
+        }
     }
+
 }
 
 void LocalStorageAllocation::visit_function_definition(Node *n) {

@@ -264,6 +264,8 @@ void SemanticAnalysis::visit_struct_type_definition(Node *n) {
     }
 
     leave_scope();
+    fields->get_kid(0)->get_kid(2)->set_str(name);
+    fields->get_kid(0)->get_kid(2)->set_type(struct_type);
 }
 
 void SemanticAnalysis::visit_binary_expression(Node *n) {
