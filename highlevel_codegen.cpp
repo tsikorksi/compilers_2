@@ -333,14 +333,15 @@ void HighLevelCodegen::visit_field_ref_expression(Node *n) {
     Operand address_register = get_offset_address(n);
 
     // Move the value of the offset of the field
-    Operand elem (Operand::IMM_IVAL, struct_type->find_member(n->get_kid(1)->get_str())->get_offset());
-    HighLevelOpcode mov_opcode = get_opcode(HINS_mov_b, struct_type->find_member(n->get_kid(1)->get_str())->get_type());
+    const Member *accessed_member = struct_type->find_member(n->get_kid(1)->get_str());
+    Operand elem (Operand::IMM_IVAL, accessed_member->get_offset());
+    HighLevelOpcode mov_opcode = get_opcode(HINS_mov_b, accessed_member->get_type());
     Operand dest (Operand::VREG, next_temp_vreg());
     m_hl_iseq->append(new Instruction(mov_opcode, dest , elem));
 
     // add values of offsets
     Operand final_dest(Operand::VREG, next_temp_vreg());
-    HighLevelOpcode add_opcode = get_opcode(HINS_add_b, struct_type);
+    HighLevelOpcode add_opcode = get_opcode(HINS_add_b, accessed_member->get_type());
     m_hl_iseq->append(new Instruction(add_opcode, final_dest, dest, address_register));
 
     n->set_operand(final_dest.to_memref());
