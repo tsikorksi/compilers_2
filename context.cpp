@@ -158,9 +158,7 @@ void Context::highlevel_codegen(ModuleCollector *module_collector) {
     for (auto i = m_ast->cbegin(); i != m_ast->cend(); ++i) {
         Node *child = *i;
         if (child->get_tag() == AST_FUNCTION_DEFINITION) {
-            LocalStorageAllocation lc_alloc;
-            lc_alloc.visit(child);
-            HighLevelCodegen hl_codegen(next_label_num, lc_alloc.next());
+            HighLevelCodegen hl_codegen(next_label_num, local_storage_alloc.next());
             hl_codegen.visit(child);
             std::string fn_name = child->get_kid(1)->get_str();
             std::shared_ptr<InstructionSequence> hl_iseq = hl_codegen.get_hl_iseq();
