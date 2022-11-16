@@ -17,12 +17,15 @@ void LocalStorageAllocation::visit_declarator_list(Node *n) {
             struct_calc.add_field(n->get_kid(i)->get_type());
         }
         struct_calc.finish();
+        m_total_local_storage += struct_calc.get_size();
         m_storage_calc.add_field(n->get_type());
         std::cout << "/* struct '" << n->get_str() << "' allocated " << struct_calc.get_size() << " bytes " <<  " */" << std::endl;
 
     } else {
         for (unsigned i = 0; i < n->get_num_kids(); i++) {
-            assign_variable_storage(n->get_kid(i) ,n->get_kid(i));
+            if (!n->get_kid(i)->get_symbol()->get_type()->is_struct()) {
+                assign_variable_storage(n->get_kid(i) ,n->get_kid(i));
+            }
         }
     }
 
