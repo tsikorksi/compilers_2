@@ -299,7 +299,8 @@ void HighLevelCodegen::visit_literal_value(Node *n) {
             Operand(Operand::IMM_LABEL, val.get_char_value());
             break;
         case LiteralValueKind::STRING:
-            rhs = Operand(Operand::IMM_LABEL, &"str" [ val.get_int_value()]);
+            m_rodata.push_back(val.get_str_value());
+            rhs = Operand(Operand::IMM_LABEL, &"str" [ (m_rodata.size() - 1)]);
             break;
         case LiteralValueKind::NONE:
             break;

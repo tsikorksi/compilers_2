@@ -159,11 +159,12 @@ void Context::highlevel_codegen(ModuleCollector *module_collector) {
     for (auto i = m_ast->cbegin(); i != m_ast->cend(); ++i) {
         Node *child = *i;
         if (child->get_tag() == AST_FUNCTION_DEFINITION) {
-            // TODO: String
-//            String str(static_cast<PrintHighLevelCode>(module_collector));
-//            str.visit(child);
             HighLevelCodegen hl_codegen(next_label_num, local_storage_alloc.next());
             hl_codegen.visit(child);
+            std::vector<std::string> strings = hl_codegen.get_strings();
+            for (int l = 0; l < strings.size(); l++){
+                module_collector->collect_string_constant(&"str" [ l], hl_codegen.get_strings().at(l));
+            }
             std::string fn_name = child->get_kid(1)->get_str();
             std::shared_ptr<InstructionSequence> hl_iseq = hl_codegen.get_hl_iseq();
 

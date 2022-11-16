@@ -14,6 +14,7 @@ private:
     int m_next_label_num;
     std::string m_return_label_name; // name of the label that return instructions should target
     std::shared_ptr<InstructionSequence> m_hl_iseq;
+    std::vector<std::string> m_rodata;
 
 public:
     // the next_label_num controls where the next_label() member function
@@ -41,6 +42,7 @@ public:
     virtual void visit_literal_value(Node *n);
     virtual void visit_field_ref_expression(Node *n);
     virtual void visit_indirect_field_ref_expression(Node *n);
+    std::vector<std::string> get_strings() {return m_rodata;}
 
 private:
     std::string next_label();
