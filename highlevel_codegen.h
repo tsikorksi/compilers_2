@@ -48,4 +48,6 @@ private:
     std::string next_label();
     // TODO: additional private member functions
     int next_temp_vreg();
+
+    Operand get_offset_address(Node *n);
 };
