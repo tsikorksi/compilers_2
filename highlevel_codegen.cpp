@@ -299,7 +299,7 @@ void HighLevelCodegen::visit_literal_value(Node *n) {
             Operand(Operand::IMM_LABEL, val.get_char_value());
             break;
         case LiteralValueKind::STRING:
-            rhs = Operand(Operand::IMM_LABEL, val.get_str_value());
+            rhs = Operand(Operand::IMM_LABEL, &"str" [ val.get_int_value()]);
             break;
         case LiteralValueKind::NONE:
             break;

@@ -195,3 +195,7 @@ std::string LiteralValue::strip_quotes(const std::string &lexeme, char quote) {
   s.pop_back();
   return s;
 }
+
+void LiteralValue::set_string_vreg(std::string vreg) {
+    m_strval = vreg;
+}

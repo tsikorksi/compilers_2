@@ -35,6 +35,7 @@
 #include "local_storage_allocation.h"
 #include "lowlevel_codegen.h"
 #include "context.h"
+#include "strings.h"
 
 Context::Context()
         : m_ast(nullptr) {
@@ -158,6 +159,8 @@ void Context::highlevel_codegen(ModuleCollector *module_collector) {
     for (auto i = m_ast->cbegin(); i != m_ast->cend(); ++i) {
         Node *child = *i;
         if (child->get_tag() == AST_FUNCTION_DEFINITION) {
+            String str();
+            str.visit(child);
             HighLevelCodegen hl_codegen(next_label_num, local_storage_alloc.next());
             hl_codegen.visit(child);
             std::string fn_name = child->get_kid(1)->get_str();
