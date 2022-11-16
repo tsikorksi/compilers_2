@@ -250,7 +250,7 @@ void SemanticAnalysis::visit_struct_type_definition(Node *n) {
     }
     std::shared_ptr<Type> struct_type(new StructType(name));
 
-    m_cur_symtab->define(SymbolKind::TYPE, "struct " + name, struct_type);
+    Symbol * struct_local = m_cur_symtab->define(SymbolKind::TYPE, "struct " + name, struct_type);
     enter_scope("struct");
     Node * fields = n->get_kid(1);
     for (unsigned i = 0; i < fields->get_num_kids(); i++) {
@@ -265,7 +265,7 @@ void SemanticAnalysis::visit_struct_type_definition(Node *n) {
 
     leave_scope();
     fields->get_kid(0)->get_kid(2)->set_str(name);
-    fields->get_kid(0)->get_kid(2)->set_type(struct_type);
+    fields->get_kid(0)->get_kid(2)->set_symbol(struct_local);
 }
 
 void SemanticAnalysis::visit_binary_expression(Node *n) {
@@ -470,13 +470,13 @@ bool SemanticAnalysis::check_different(const std::shared_ptr<Type>& a, const std
 void SemanticAnalysis::visit_field_ref_expression(Node *n) {
     visit(n->get_kid(0));
 
-    std::shared_ptr<Type> var = n->get_kid(0)->get_type();
+    Symbol * base_struct = n->get_kid(0)->get_symbol();
 
-    if (var->is_pointer()) {
+    if (base_struct->get_type()->is_pointer()) {
         SemanticError::raise(n->get_loc(), "Direct reference to pointer");
     }
 
-    std::shared_ptr<Type> field_type = var->find_member(n->get_kid(1)->get_str())->get_type();
+    std::shared_ptr<Type> field_type = base_struct->get_type()->find_member(n->get_kid(1)->get_str())->get_type();
     n->set_type(field_type);
     // if it's an array of char's it's actually a pointer to char's
     if (field_type->is_array() && field_type->get_base_type()->get_basic_type_kind() == BasicTypeKind::CHAR) {

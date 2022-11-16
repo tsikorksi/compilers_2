@@ -11,10 +11,11 @@ LocalStorageAllocation::LocalStorageAllocation()
 LocalStorageAllocation::~LocalStorageAllocation() = default;
 
 void LocalStorageAllocation::visit_declarator_list(Node *n) {
-    if (n->has_type() && n->get_type()->is_struct()) {
+    if (n->has_symbol() && n->get_type()->is_struct()) {
         StorageCalculator struct_calc;
         for (unsigned i = 0; i < n->get_num_kids(); i++) {
-            struct_calc.add_field(n->get_kid(i)->get_type());
+            unsigned new_mem = struct_calc.add_field(n->get_kid(i)->get_type());
+            n->get_symbol()->get_type()->find_member(n->get_kid(i)->get_str())->set_offset(new_mem);
         }
         struct_calc.finish();
         m_total_local_storage += struct_calc.get_size();

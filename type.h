@@ -9,17 +9,17 @@
 // note that these can be signed or unsigned
 // (except for void)
 enum class BasicTypeKind {
-  CHAR,
-  SHORT,
-  INT,
-  LONG,
-  VOID,
+    CHAR,
+    SHORT,
+    INT,
+    LONG,
+    VOID,
 };
 
 // Type qualifiers
 enum class TypeQualifier {
-  VOLATILE,
-  CONST,
+    VOLATILE,
+    CONST,
 };
 
 // forward declaration
@@ -39,127 +39,132 @@ class Member;
 // representations.
 class Type {
 private:
-  // value semantics not allowed
-  Type(const Type &);
-  Type& operator=(const Type &);
+    // value semantics not allowed
+    Type(const Type &);
+    Type& operator=(const Type &);
 
 protected:
-  Type();
+    Type();
 
 public:
-  virtual ~Type();
+    virtual ~Type();
 
-  // Some member functions for convenience
-  bool is_integral() const { return is_basic() && get_basic_type_kind() != BasicTypeKind::VOID; }
-  const Member *find_member(const std::string &name) const;
+    // Some member functions for convenience
+    bool is_integral() const { return is_basic() && get_basic_type_kind() != BasicTypeKind::VOID; }
+    const Member *find_member(const std::string &name) const;
 
-  // Note that Type provides default implementations of virtual
-  // member functions that will be appropriate for most of the
-  // subclasses. Each subclass should be able to just override the
-  // member functions that are necessary to provide that
-  // subclass's functionality.
+    // Note that Type provides default implementations of virtual
+    // member functions that will be appropriate for most of the
+    // subclasses. Each subclass should be able to just override the
+    // member functions that are necessary to provide that
+    // subclass's functionality.
 
-  // equality: returns true IFF the other type represents
-  // exactly the same type as this one
-  virtual bool is_same(const Type *other) const = 0;
+    // equality: returns true IFF the other type represents
+    // exactly the same type as this one
+    virtual bool is_same(const Type *other) const = 0;
 
-  // return a string containing a description of the type
-  virtual std::string as_str() const = 0;
+    // return a string containing a description of the type
+    virtual std::string as_str() const = 0;
 
-  // get unqualified type (strip off type qualifiers, if any)
-  virtual const Type *get_unqualified_type() const;
+    // get unqualified type (strip off type qualifiers, if any)
+    virtual const Type *get_unqualified_type() const;
 
-  // subtype tests (safe to call on any Type object)
-  virtual bool is_basic() const;
-  virtual bool is_void() const;
-  virtual bool is_struct() const;
-  virtual bool is_pointer() const;
-  virtual bool is_array() const;
-  virtual bool is_function() const;
+    // subtype tests (safe to call on any Type object)
+    virtual bool is_basic() const;
+    virtual bool is_void() const;
+    virtual bool is_struct() const;
+    virtual bool is_pointer() const;
+    virtual bool is_array() const;
+    virtual bool is_function() const;
 
-  // qualifier tests (safe to call on any Type object)
-  virtual bool is_volatile() const;
-  virtual bool is_const() const;
+    // qualifier tests (safe to call on any Type object)
+    virtual bool is_volatile() const;
+    virtual bool is_const() const;
 
-  // BasicType-only member functions
-  virtual BasicTypeKind get_basic_type_kind() const;
-  virtual bool is_signed() const;
+    // BasicType-only member functions
+    virtual BasicTypeKind get_basic_type_kind() const;
+    virtual bool is_signed() const;
 
-  // Functions common to StructType and FunctionType.
-  // A "member" is a parameter (for FunctionTypes) or a field (for StructTypes).
-  virtual void add_member(const Member &member);
-  virtual unsigned get_num_members() const;
-  virtual const Member &get_member(unsigned index) const;
+    // Functions common to StructType and FunctionType.
+    // A "member" is a parameter (for FunctionTypes) or a field (for StructTypes).
+    virtual void add_member(const Member &member);
+    virtual unsigned get_num_members() const;
+    virtual const Member &get_member(unsigned index) const;
 
-  // FunctionTypes, PointerTypes, and ArrayTypes all have
-  // a base type.
-  virtual std::shared_ptr<Type> get_base_type() const;
+    // FunctionTypes, PointerTypes, and ArrayTypes all have
+    // a base type.
+    virtual std::shared_ptr<Type> get_base_type() const;
 
-  // FunctionType-only member functions
-  // (there aren't any, at least for now...)
+    // FunctionType-only member functions
+    // (there aren't any, at least for now...)
 
-  // PointerType-only member functions
-  // (there actually aren't any, at least for now...)
+    // PointerType-only member functions
+    // (there actually aren't any, at least for now...)
 
-  // ArrayType-only member functions
-  virtual unsigned get_array_size() const;
+    // ArrayType-only member functions
+    virtual unsigned get_array_size() const;
 
-  // These member functions can be used on any non-function type
-  virtual unsigned get_storage_size() const = 0;
-  virtual unsigned get_alignment() const = 0;
+    // These member functions can be used on any non-function type
+    virtual unsigned get_storage_size() const = 0;
+    virtual unsigned get_alignment() const = 0;
 };
 
 // Common base class for QualifiedType, FunctionType, PointerType, and
 // ArrayType
 class HasBaseType : virtual public Type {
 private:
-  std::shared_ptr<Type> m_base_type;
+    std::shared_ptr<Type> m_base_type;
 
-  // value semantics are not allowed
-  HasBaseType(const HasBaseType &);
-  HasBaseType &operator=(const HasBaseType &);
+    // value semantics are not allowed
+    HasBaseType(const HasBaseType &);
+    HasBaseType &operator=(const HasBaseType &);
 
 public:
-  HasBaseType(const std::shared_ptr<Type> &base_type);
-  virtual ~HasBaseType();
+    HasBaseType(const std::shared_ptr<Type> &base_type);
+    virtual ~HasBaseType();
 
-  virtual std::shared_ptr<Type> get_base_type() const;
+    virtual std::shared_ptr<Type> get_base_type() const;
 };
 
 // A parameter of a function or a field of a struct type.
 class Member {
 private:
-  const std::string m_name;
-  std::shared_ptr<Type> m_type;
-  // Note: you could add additional information here, such as an
-  // offset value (for struct fields), etc.
+    const std::string m_name;
+    std::shared_ptr<Type> m_type;
+    // Note: you could add additional information here, such as an
+    // offset value (for struct fields), etc.
+
+    mutable unsigned m_offset;
 
 public:
-  Member(const std::string &name, const std::shared_ptr<Type> &type);
-  ~Member();
+    Member(const std::string &name, const std::shared_ptr<Type> &type);
+    ~Member();
 
-  const std::string &get_name() const;
-  std::shared_ptr<Type> get_type() const;
+
+    void set_offset(unsigned offset) const { m_offset = offset; }
+    unsigned get_offset() const { return m_offset; }
+    const std::string &get_name() const;
+    std::shared_ptr<Type> get_type() const;
 };
 
 // Common base class for StructType and FunctionType,
 // which both have "members" (fields or parameters)
 class HasMembers : virtual public Type {
 private:
-  std::vector<Member> m_members;
+    std::vector<Member> m_members;
 
-  // value semantics are disallowed
-  HasMembers(const HasMembers &);
-  HasMembers &operator=(const HasMembers &);
+    // value semantics are disallowed
+    HasMembers(const HasMembers &);
+    HasMembers &operator=(const HasMembers &);
 
 public:
-  HasMembers();
-  virtual ~HasMembers();
+    HasMembers();
+    virtual ~HasMembers();
 
-  virtual std::string as_str() const;
-  virtual void add_member(const Member &member);
-  virtual unsigned get_num_members() const;
-  virtual const Member &get_member(unsigned index) const;
+    virtual std::string as_str() const;
+    virtual void add_member(const Member &member);
+    virtual unsigned get_num_members() const;
+    virtual const Member &get_member(unsigned index) const;
 };
 
 // A QualifiedType modifies a "delegate" type with a TypeQualifier
@@ -167,137 +172,137 @@ public:
 // on to the delegate.
 class QualifiedType : public HasBaseType {
 private:
-  TypeQualifier m_type_qualifier;
+    TypeQualifier m_type_qualifier;
 
-  // value semantics are not allowed
-  QualifiedType(const QualifiedType &);
-  QualifiedType &operator=(const QualifiedType &);
+    // value semantics are not allowed
+    QualifiedType(const QualifiedType &);
+    QualifiedType &operator=(const QualifiedType &);
 
 public:
-  QualifiedType(const std::shared_ptr<Type> &delegate, TypeQualifier type_qualifier);
-  virtual ~QualifiedType();
+    QualifiedType(const std::shared_ptr<Type> &delegate, TypeQualifier type_qualifier);
+    virtual ~QualifiedType();
 
-  virtual bool is_same(const Type *other) const;
-  virtual std::string as_str() const;
-  virtual const Type *get_unqualified_type() const;
-  virtual bool is_basic() const;
-  virtual bool is_void() const;
-  virtual bool is_struct() const;
-  virtual bool is_pointer() const;
-  virtual bool is_array() const;
-  virtual bool is_function() const;
-  virtual bool is_volatile() const;
-  virtual bool is_const() const;
-  virtual BasicTypeKind get_basic_type_kind() const;
-  virtual bool is_signed() const;
-  virtual void add_member(const Member &member);
-  virtual unsigned get_num_members() const;
-  virtual const Member &get_member(unsigned index) const;
-  virtual unsigned get_array_size() const;
-  virtual unsigned get_storage_size() const;
-  virtual unsigned get_alignment() const;
+    virtual bool is_same(const Type *other) const;
+    virtual std::string as_str() const;
+    virtual const Type *get_unqualified_type() const;
+    virtual bool is_basic() const;
+    virtual bool is_void() const;
+    virtual bool is_struct() const;
+    virtual bool is_pointer() const;
+    virtual bool is_array() const;
+    virtual bool is_function() const;
+    virtual bool is_volatile() const;
+    virtual bool is_const() const;
+    virtual BasicTypeKind get_basic_type_kind() const;
+    virtual bool is_signed() const;
+    virtual void add_member(const Member &member);
+    virtual unsigned get_num_members() const;
+    virtual const Member &get_member(unsigned index) const;
+    virtual unsigned get_array_size() const;
+    virtual unsigned get_storage_size() const;
+    virtual unsigned get_alignment() const;
 };
 
 class BasicType : public Type {
 private:
-  BasicTypeKind m_kind;
-  bool m_is_signed;
+    BasicTypeKind m_kind;
+    bool m_is_signed;
 
-  // value semantics not allowed
-  BasicType(const BasicType &);
-  BasicType &operator=(const BasicType &);
+    // value semantics not allowed
+    BasicType(const BasicType &);
+    BasicType &operator=(const BasicType &);
 
 public:
-  BasicType(BasicTypeKind kind, bool is_signed);
-  virtual ~BasicType();
+    BasicType(BasicTypeKind kind, bool is_signed);
+    virtual ~BasicType();
 
-  virtual bool is_same(const Type *other) const;
-  virtual std::string as_str() const;
-  virtual bool is_basic() const;
-  virtual bool is_void() const;
-  virtual BasicTypeKind get_basic_type_kind() const;
-  virtual bool is_signed() const;
-  virtual unsigned get_storage_size() const;
-  virtual unsigned get_alignment() const;
+    virtual bool is_same(const Type *other) const;
+    virtual std::string as_str() const;
+    virtual bool is_basic() const;
+    virtual bool is_void() const;
+    virtual BasicTypeKind get_basic_type_kind() const;
+    virtual bool is_signed() const;
+    virtual unsigned get_storage_size() const;
+    virtual unsigned get_alignment() const;
 };
 
 class StructType : public HasMembers {
 private:
-  std::string m_name;
-  mutable unsigned m_storage_size, m_alignment;
+    std::string m_name;
+    mutable unsigned m_storage_size, m_alignment;
 
-  // value semantics not allowed
-  StructType(const StructType &);
-  StructType &operator=(const StructType &);
+    // value semantics not allowed
+    StructType(const StructType &);
+    StructType &operator=(const StructType &);
 
 public:
-  StructType(const std::string &name);
-  virtual ~StructType();
+    StructType(const std::string &name);
+    virtual ~StructType();
 
-  std::string get_name() const { return m_name; }
+    std::string get_name() const { return m_name; }
 
-  virtual bool is_same(const Type *other) const;
-  virtual std::string as_str() const;
-  virtual bool is_struct() const;
-  virtual unsigned get_storage_size() const;
-  virtual unsigned get_alignment() const;
+    virtual bool is_same(const Type *other) const;
+    virtual std::string as_str() const;
+    virtual bool is_struct() const;
+    virtual unsigned get_storage_size() const;
+    virtual unsigned get_alignment() const;
 
 private:
-  void calculate_storage() const;
+    void calculate_storage() const;
 };
 
 class FunctionType : public HasBaseType, public HasMembers {
 private:
-  // value semantics not allowed
-  FunctionType(const FunctionType &);
-  FunctionType &operator=(const FunctionType &);
+    // value semantics not allowed
+    FunctionType(const FunctionType &);
+    FunctionType &operator=(const FunctionType &);
 
 public:
-  FunctionType(const std::shared_ptr<Type> &base_type);
-  virtual ~FunctionType();
+    FunctionType(const std::shared_ptr<Type> &base_type);
+    virtual ~FunctionType();
 
-  virtual bool is_same(const Type *other) const;
-  virtual std::string as_str() const;
-  virtual bool is_function() const;
-  virtual unsigned get_storage_size() const;
-  virtual unsigned get_alignment() const;
+    virtual bool is_same(const Type *other) const;
+    virtual std::string as_str() const;
+    virtual bool is_function() const;
+    virtual unsigned get_storage_size() const;
+    virtual unsigned get_alignment() const;
 };
 
 class PointerType : public HasBaseType {
 private:
-  // value semantics not allowed
-  PointerType(const PointerType &);
-  PointerType &operator=(const PointerType &);
+    // value semantics not allowed
+    PointerType(const PointerType &);
+    PointerType &operator=(const PointerType &);
 
 public:
-  PointerType(const std::shared_ptr<Type> &base_type);
-  virtual ~PointerType();
+    PointerType(const std::shared_ptr<Type> &base_type);
+    virtual ~PointerType();
 
-  virtual bool is_same(const Type *other) const;
-  virtual std::string as_str() const;
-  virtual bool is_pointer() const;
-  virtual unsigned get_storage_size() const;
-  virtual unsigned get_alignment() const;
+    virtual bool is_same(const Type *other) const;
+    virtual std::string as_str() const;
+    virtual bool is_pointer() const;
+    virtual unsigned get_storage_size() const;
+    virtual unsigned get_alignment() const;
 };
 
 class ArrayType : public HasBaseType {
 private:
-  unsigned m_size;
+    unsigned m_size;
 
-  // value semantics not allowed
-  ArrayType(const ArrayType &);
-  ArrayType &operator=(const ArrayType &);
+    // value semantics not allowed
+    ArrayType(const ArrayType &);
+    ArrayType &operator=(const ArrayType &);
 
 public:
-  ArrayType(const std::shared_ptr<Type> &base_type, unsigned size);
-  virtual ~ArrayType();
+    ArrayType(const std::shared_ptr<Type> &base_type, unsigned size);
+    virtual ~ArrayType();
 
-  virtual bool is_same(const Type *other) const;
-  virtual std::string as_str() const;
-  virtual bool is_array() const;
-  virtual unsigned get_array_size() const;
-  virtual unsigned get_storage_size() const;
-  virtual unsigned get_alignment() const;
+    virtual bool is_same(const Type *other) const;
+    virtual std::string as_str() const;
+    virtual bool is_array() const;
+    virtual unsigned get_array_size() const;
+    virtual unsigned get_storage_size() const;
+    virtual unsigned get_alignment() const;
 };
 
 #endif // TYPE_H
