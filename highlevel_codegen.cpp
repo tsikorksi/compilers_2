@@ -1,3 +1,4 @@
+#include <sstream>
 #include "node.h"
 #include "instruction.h"
 #include "highlevel.h"
@@ -298,10 +299,13 @@ void HighLevelCodegen::visit_literal_value(Node *n) {
         case LiteralValueKind::CHARACTER:
             Operand(Operand::IMM_LABEL, val.get_char_value());
             break;
-        case LiteralValueKind::STRING:
+        case LiteralValueKind::STRING: {
             m_rodata.push_back(val.get_str_value());
-            rhs = Operand(Operand::IMM_LABEL, &"str" [ (m_rodata.size() - 1)]);
+            std::ostringstream stream;
+            stream << "str" << m_rodata.size() - 1;
+            rhs = Operand(Operand::IMM_LABEL, stream.str());
             break;
+        }
         case LiteralValueKind::NONE:
             break;
     }

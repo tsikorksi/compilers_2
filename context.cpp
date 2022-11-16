@@ -23,6 +23,7 @@
 #include <algorithm>
 #include <iterator>
 #include <cassert>
+#include <sstream>
 #include "exceptions.h"
 #include "node.h"
 #include "ast.h"
@@ -162,8 +163,10 @@ void Context::highlevel_codegen(ModuleCollector *module_collector) {
             HighLevelCodegen hl_codegen(next_label_num, local_storage_alloc.next());
             hl_codegen.visit(child);
             std::vector<std::string> strings = hl_codegen.get_strings();
-            for (int l = 0; l < strings.size(); l++){
-                module_collector->collect_string_constant(&"str" [ l], hl_codegen.get_strings().at(l));
+            for (int l = 0; l < (int) strings.size(); l++){
+                std::ostringstream stream;
+                stream << "str" << l;
+                module_collector->collect_string_constant(stream.str(), hl_codegen.get_strings().at(l));
             }
             std::string fn_name = child->get_kid(1)->get_str();
             std::shared_ptr<InstructionSequence> hl_iseq = hl_codegen.get_hl_iseq();
