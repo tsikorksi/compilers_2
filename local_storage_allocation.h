@@ -19,6 +19,7 @@ private:
     StorageCalculator m_storage_calc;
     unsigned m_total_local_storage;
     int m_next_vreg;
+    unsigned vreg_boundary;
 
 public:
     LocalStorageAllocation();

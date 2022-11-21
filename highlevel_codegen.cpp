@@ -45,6 +45,7 @@ void HighLevelCodegen::visit_function_definition(Node *n) {
     m_hl_iseq->define_label(m_return_label_name);
     m_hl_iseq->append(new Instruction(HINS_leave, Operand(Operand::IMM_IVAL, total_local_storage)));
     m_hl_iseq->append(new Instruction(HINS_ret));
+    n->get_symbol()->set_vreg(m_next_vreg-1);
 }
 
 void HighLevelCodegen::visit_expression_statement(Node *n) {
@@ -377,6 +378,7 @@ void HighLevelCodegen::visit_indirect_field_ref_expression(Node *n) {
 int HighLevelCodegen::next_temp_vreg() {
     int temp = m_next_vreg;
     m_next_vreg++;
+
     return temp;
 }
 

@@ -5,7 +5,7 @@
 
 LocalStorageAllocation::LocalStorageAllocation()
         : m_storage_calc(StorageCalculator::STRUCT, 0)
-        , m_total_local_storage(0U), m_next_vreg(VREG_FIRST_LOCAL) {
+        , m_total_local_storage(0U), m_next_vreg(VREG_FIRST_LOCAL), vreg_boundary(0) {
 }
 
 LocalStorageAllocation::~LocalStorageAllocation() = default;
@@ -40,6 +40,7 @@ void LocalStorageAllocation::visit_function_definition(Node *n) {
     visit(n->get_kid(3));
     std::cout << "/* function '" <<n->get_symbol()->get_name() << "' uses "<< m_total_local_storage <<  " bytes of memory, allocated " << m_next_vreg << " vreg's */\n" << std::endl;
     n->get_symbol()->set_offset(m_total_local_storage);
+    n->get_symbol()->set_vreg(m_next_vreg);
 
 }
 
@@ -68,6 +69,7 @@ void LocalStorageAllocation::assign_variable_storage(Node *declarator, Node *bas
             int next_vreg = next();
             declarator->get_symbol()->set_vreg(next_vreg);
             std::cout << "/* variable '" << declarator->get_str() << "' allocated to vr" << next_vreg << " */" << std::endl;
+            vreg_boundary+=declarator->get_symbol()->get_type()->get_storage_size();
         }
     }
 }

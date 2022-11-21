@@ -142,9 +142,7 @@ void Context::highlevel_codegen(ModuleCollector *module_collector) {
     LocalStorageAllocation local_storage_alloc;
     local_storage_alloc.visit(m_ast);
 
-    // TODO: find all of the string constants in the AST
-    //       and call the ModuleCollector's collect_string_constant
-    //       member function for each one
+
 
     // collect all of the global variables
     SymbolTable *globals = m_sema.get_global_symtab();
