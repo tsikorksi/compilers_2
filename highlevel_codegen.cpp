@@ -348,7 +348,30 @@ void HighLevelCodegen::visit_field_ref_expression(Node *n) {
 }
 
 void HighLevelCodegen::visit_indirect_field_ref_expression(Node *n) {
-    ASTVisitor::visit_indirect_field_ref_expression(n);
+    //	localaddr vr11, $0
+    //	mov_q    vr10, vr11
+    //	mov_q    vr11, $0
+    //	add_q    vr12, vr10, vr11
+    visit(n->get_kid(0));
+    visit(n->get_kid(1));
+
+    std::shared_ptr<Type> struct_type = n->get_kid(0)->get_type()->get_base_type();
+
+    Operand address_register = get_offset_address(n);
+
+    // Move the value of the offset of the field
+    const Member *accessed_member = struct_type->find_member(n->get_kid(1)->get_str());
+    Operand elem (Operand::IMM_IVAL, accessed_member->get_offset());
+    HighLevelOpcode mov_opcode = get_opcode(HINS_mov_b, accessed_member->get_type());
+    Operand dest (Operand::VREG, next_temp_vreg());
+    m_hl_iseq->append(new Instruction(mov_opcode, dest , elem));
+
+    // add values of offsets
+    Operand final_dest(Operand::VREG, next_temp_vreg());
+    HighLevelOpcode add_opcode = get_opcode(HINS_add_b, accessed_member->get_type());
+    m_hl_iseq->append(new Instruction(add_opcode, final_dest, dest, address_register));
+
+    n->set_operand(final_dest.to_memref());
 }
 
 int HighLevelCodegen::next_temp_vreg() {
