@@ -156,7 +156,7 @@ void HighLevelCodegen::visit_for_statement(Node *n) {
     m_hl_iseq->define_label(jump_out);
     // evaluate comparison, return to top if true
     visit(n->get_kid(1));
-    m_hl_iseq->append(new Instruction(HINS_cjmp_f, n->get_kid(1)->get_operand() , Operand(Operand::LABEL, jump_out)));
+    m_hl_iseq->append(new Instruction(HINS_cjmp_f, n->get_kid(1)->get_operand() , Operand(Operand::LABEL, jump_back)));
 
 
 }
