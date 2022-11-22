@@ -41,7 +41,6 @@ void LocalStorageAllocation::visit_function_definition(Node *n) {
     std::cout << "/* function '" <<n->get_symbol()->get_name() << "' uses "<< m_total_local_storage <<  " bytes of memory, allocated " << m_next_vreg << " vreg's */\n" << std::endl;
     n->get_symbol()->set_offset(m_total_local_storage);
     n->get_symbol()->set_vreg(m_next_vreg);
-
 }
 
 void LocalStorageAllocation::visit_function_parameter(Node *n) {

@@ -270,6 +270,56 @@ void LowLevelCodeGen::translate_instruction(Instruction *hl_ins, const std::shar
     int dest_size = highlevel_opcode_get_dest_operand_size(hl_opcode);
     dest_operand = get_ll_operand(hl_ins->get_operand(0), dest_size, ll_iseq);
 
+    //conv
+    if (match_hl(HINS_uconv_bw, hl_opcode) || match_hl(HINS_uconv_bq, hl_opcode)
+        || match_hl(HINS_sconv_bw, hl_opcode)  || match_hl(HINS_sconv_bq, hl_opcode)) {
+        int before = 1;
+        int after;
+        switch (hl_opcode) {
+            case HINS_sconv_bw:
+            case HINS_uconv_bw:
+                after = 2;
+                break;
+            case HINS_sconv_bl:
+            case HINS_uconv_bl:
+                after = 4;
+                break;
+            case HINS_sconv_bq:
+            case HINS_uconv_bq:
+                after = 8;
+                break;
+            case HINS_sconv_wl:
+            case HINS_uconv_wl:
+                before = 2;
+                after = 4;
+                break;
+            case HINS_sconv_wq:
+            case HINS_uconv_wq:
+                before = 2;
+                after = 8;
+                break;
+            case HINS_sconv_lq:
+            case HINS_uconv_lq:
+                before = 4;
+                after = 8;
+                break;
+            default:
+                RuntimeError::raise("Non-conversion passed into conversion check");
+        }
+        // Move value into small temp
+        LowLevelOpcode old_move = select_ll_opcode(MINS_MOVB, before);
+        Operand r10_small(select_mreg_kind(before), MREG_R10);
+        ll_iseq->append(new Instruction(old_move, src_operand, r10_small));
+
+        // Convert it
+        Operand r10_big(select_mreg_kind(after), MREG_R10);
+        ll_iseq->append(new Instruction(HL_TO_LL.at(hl_opcode), r10_small, r10_big));
+        // Move it from big temp to destination
+        LowLevelOpcode new_move = select_ll_opcode(MINS_MOVB, after);
+        ll_iseq->append(new Instruction(new_move, r10_big, dest_operand));
+        return;
+    }
+
     // mov
     if (match_hl(HINS_mov_b, hl_opcode)) {
 
@@ -301,6 +351,22 @@ void LowLevelCodeGen::translate_instruction(Instruction *hl_ins, const std::shar
         return;
     }
 
+    // localaddr
+    if (hl_opcode == HINS_localaddr) {
+        // Always take 64 bit size as per spec
+        src_operand = get_ll_operand(hl_ins->get_operand(1), 8, ll_iseq);
+        dest_operand = get_ll_operand(hl_ins->get_operand(0), 8, ll_iseq);
+        Operand temp(select_mreg_kind(8), MREG_R10);
+
+        // Get the actual offset, not the offset that hl gen passes in
+        Operand memory_ref(Operand::MREG64_MEM_OFF, MREG_RBP, -1*(m_total_memory_storage - src_operand.get_imm_ival()));
+
+        // Do the thing
+        ll_iseq->append(new Instruction(MINS_LEAQ, memory_ref, temp));
+        ll_iseq->append(new Instruction(MINS_MOVQ, temp, dest_operand));
+        return;
+    }
+
     // 3 OPERAND
     int src_second_size = highlevel_opcode_get_source_operand_size(hl_opcode);
     Operand src_second_operand = get_ll_operand(hl_ins->get_operand(2), src_second_size, ll_iseq);
@@ -309,8 +375,8 @@ void LowLevelCodeGen::translate_instruction(Instruction *hl_ins, const std::shar
 
     // math
     if (match_hl(HINS_add_b, hl_opcode) || match_hl(HINS_sub_b, hl_opcode)
-    || match_hl(HINS_mul_b, hl_opcode)  || match_hl(HINS_div_b, hl_opcode)
-    || match_hl(HINS_mod_b, hl_opcode)  ) {
+        || match_hl(HINS_mul_b, hl_opcode)  || match_hl(HINS_div_b, hl_opcode)
+        || match_hl(HINS_mod_b, hl_opcode)  ) {
 
         // Move one into the other, then add using r10 as a temp variable
         ll_iseq->append(new Instruction(mov_opcode, src_operand, temp));
@@ -322,8 +388,8 @@ void LowLevelCodeGen::translate_instruction(Instruction *hl_ins, const std::shar
 
     // cmp
     if (match_hl(HINS_cmplt_b, hl_opcode)|| match_hl(HINS_cmplte_b, hl_opcode)
-    || match_hl(HINS_cmpgt_b, hl_opcode) || match_hl(HINS_cmpgte_b, hl_opcode)
-    || match_hl(HINS_cmpeq_b, hl_opcode) || match_hl(HINS_cmpneq_b, hl_opcode)) {
+        || match_hl(HINS_cmpgt_b, hl_opcode) || match_hl(HINS_cmpgte_b, hl_opcode)
+        || match_hl(HINS_cmpeq_b, hl_opcode) || match_hl(HINS_cmpneq_b, hl_opcode)) {
 
         // compare the two
         LowLevelOpcode compare = select_ll_opcode(MINS_CMPB, src_second_size);
@@ -389,8 +455,7 @@ LowLevelCodeGen::get_ll_operand(Operand hl_operand, int size, const std::shared_
             case 6:
                 return {kind, MREG_R9};
         }
-    }
-    else {
+    } else {
         Operand ll = Operand(Operand::MREG64_MEM_OFF, MREG_RBP, get_offset(hl_operand.get_base_reg()));
         if (hl_operand.is_memref()) {
             Operand reg_op(select_mreg_kind(8), MREG_R11);
