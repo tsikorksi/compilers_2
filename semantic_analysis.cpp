@@ -406,6 +406,7 @@ void SemanticAnalysis::visit_unary_expression(Node *n) {
             SemanticError::raise(n->get_loc(), "Tried to reference a literal");
         }
         n->make_pointer();
+        n->get_kid(1)->get_symbol()->take_address();
     } else if (n->get_kid(0)->get_tag() == TOK_ASTERISK) {
         n->make_pointer();
     }

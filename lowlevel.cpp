@@ -8,7 +8,7 @@ const char *lowlevel_opcode_to_str(LowLevelOpcode opcode) {
   case MINS_MOVB:
     return "movb";
   case MINS_MOVW:
-    return "move";
+    return "movw";
   case MINS_MOVL:
     return "movl";
   case MINS_MOVQ:

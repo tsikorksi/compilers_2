@@ -61,7 +61,7 @@ void LocalStorageAllocation::assign_variable_storage(Node *declarator, Node *bas
             break;
         }
         case AST_NAMED_DECLARATOR: {
-            if (declarator->get_type()->is_integral() || declarator->get_type()->is_pointer()) {
+            if ((declarator->get_type()->is_integral() || declarator->get_type()->is_pointer()) && !declarator->get_symbol()->is_stack() && !declarator->get_symbol()->needs_address()) {
                 int next_vreg = next();
                 declarator->get_symbol()->set_vreg(next_vreg);
                 std::cout << "/* variable '" << declarator->get_str() << "' allocated to vr" << next_vreg << " */" << std::endl;

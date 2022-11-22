@@ -68,11 +68,19 @@ void HighLevelCodegen::visit_unary_expression(Node *n) {
     visit(n->get_kid(1));
     switch(n->get_kid(0)->get_tag()) {
         case TOK_AMPERSAND:
-            n->set_operand(n->get_kid(1)->get_operand().to_memref());
+            n->get_kid(1)->get_symbol()->take_address();
+            n->set_operand(n->get_kid(1)->get_operand().from_memref());
             break;
         case TOK_ASTERISK:
-            n->set_operand(n->get_kid(1)->get_operand());
-            break;
+            if (n->get_kid(1)->get_operand().is_memref()) {
+                int vreg = next_temp_vreg();
+                Operand op(Operand::VREG, vreg);
+                HighLevelOpcode mov_opcode = get_opcode(HINS_mov_b, n->get_kid(1)->get_type());
+                m_hl_iseq->append(new Instruction(mov_opcode, op, n->get_kid(1)->get_operand()));
+                n->set_operand(op.to_memref());
+            } else {
+                n->set_operand(n->get_kid(1)->get_operand().to_memref());
+            }
     }
 }
 
@@ -187,7 +195,7 @@ void HighLevelCodegen::visit_binary_expression(Node *n) {
 
     if (n->get_kid(0)->get_tag() == TOK_ASSIGN) {
         // Assuming we are in assign, we don't need to know anything else
-        HighLevelOpcode mov_opcode = get_opcode(HINS_mov_b, n->get_kid(1)->get_type());
+        HighLevelOpcode mov_opcode = get_opcode(HINS_mov_b, n->get_kid(2)->get_type());
         // move one into the other
         m_hl_iseq->append(new Instruction (mov_opcode, lhs, rhs));
         n->set_operand(lhs);
@@ -298,8 +306,12 @@ void HighLevelCodegen::visit_array_element_ref_expression(Node *n) {
 /// Set local operand to the stored vreg of the variable
 /// \param n local node
 void HighLevelCodegen::visit_variable_ref(Node *n) {
-    if (n->get_symbol()->is_stack()) {
-        n->set_operand(get_offset_address(n));
+    if (n->get_symbol()->is_stack() || n->get_symbol()->needs_address()) {
+        Operand op = get_offset_address(n);
+        if (n->get_symbol()->needs_address()) {
+            op = op.to_memref();
+        }
+        n->set_operand(op);
     } else {
         Symbol * sym = n->get_symbol();
         Operand local(Operand::VREG, sym->get_vreg());

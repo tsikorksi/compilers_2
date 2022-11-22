@@ -25,6 +25,7 @@ private:
     int m_vreg = -1;
     unsigned m_offset = -1;
     bool m_on_stack = false;
+    bool m_address_taken = false;
 
     // value semantics prohibited
     Symbol(const Symbol &);
@@ -46,6 +47,9 @@ public:
     bool is_defined() const;
 
     bool is_stack() const {if (m_on_stack) {return true;}return false;}
+
+    void take_address() {m_address_taken = true;}
+    bool needs_address() {return m_address_taken;}
 
     int get_vreg() {return m_vreg;};
     void set_vreg(int m_next_vreg) {m_vreg = m_next_vreg;};
