@@ -145,19 +145,19 @@ void HighLevelCodegen::visit_for_statement(Node *n) {
     std::string jump_back = next_label();
     std::string jump_out = next_label();
     // set return point for loop
+    m_hl_iseq->append(new Instruction(HINS_jmp, Operand(Operand::LABEL, jump_out)));
     m_hl_iseq->define_label(jump_back);
-    // evaluate comparison, leave if false
-    visit(n->get_kid(1));
-    m_hl_iseq->append(new Instruction(HINS_cjmp_f, n->get_kid(1)->get_operand() , Operand(Operand::LABEL, jump_out)));
     // execute body
     visit(n->get_kid(3));
     // execute change to loop counter
     visit(n->get_kid(2));
 
-    // jump back to start
-    m_hl_iseq->append(new Instruction(HINS_jmp, Operand(Operand::LABEL, jump_back)));
     // set label for exiting loop
     m_hl_iseq->define_label(jump_out);
+    // evaluate comparison, return to top if true
+    visit(n->get_kid(1));
+    m_hl_iseq->append(new Instruction(HINS_cjmp_f, n->get_kid(1)->get_operand() , Operand(Operand::LABEL, jump_out)));
+
 
 }
 
@@ -278,14 +278,10 @@ void HighLevelCodegen::visit_array_element_ref_expression(Node *n) {
     // Move the value of the element location to
     visit(n->get_kid(1));
     Operand elem = n->get_kid(1)->get_operand();
-    HighLevelOpcode mov_opcode = get_opcode(HINS_mov_b, element_type);
-    Operand dest (Operand::VREG, next_temp_vreg());
-    m_hl_iseq->append(new Instruction(mov_opcode, dest , elem));
 
     // upgrade it to make space for multiplication
     Operand dest_up (Operand::VREG, next_temp_vreg());
-    HighLevelOpcode upgrade = get_opcode(HINS_sconv_bl, element_type);
-    m_hl_iseq->append(new Instruction(upgrade, dest_up, dest));
+    m_hl_iseq->append(new Instruction(HINS_sconv_lq, dest_up, elem));
 
     // multiply to get to actual address of local variable
     Operand mult_dest(Operand::VREG, next_temp_vreg());
@@ -296,10 +292,14 @@ void HighLevelCodegen::visit_array_element_ref_expression(Node *n) {
     // add value of offset
     Operand final_dest(Operand::VREG, next_temp_vreg());
     HighLevelOpcode add_opcode = get_opcode(HINS_add_b, element_type);
-    m_hl_iseq->append(new Instruction(add_opcode, final_dest, mult_dest, address_register));
+    m_hl_iseq->append(new Instruction(add_opcode, final_dest, address_register, mult_dest));
 
     // set Operand to the location of the destination
     n->set_operand(final_dest.to_memref());
+
+
+    // save ourselves some vregs
+    m_next_vreg-=5;
 
 }
 
@@ -424,4 +424,37 @@ Operand HighLevelCodegen::get_offset_address(Node * n) {
 
     m_hl_iseq->append(new Instruction(HINS_localaddr, address_register, Operand(Operand::IMM_IVAL, offset)));
     return address_register;
+}
+
+HighLevelOpcode HighLevelCodegen::get_conversion_code(bool sign, BasicTypeKind before, BasicTypeKind after) {
+    HighLevelOpcode base = HINS_sconv_bw;
+    if (sign) {
+        base = static_cast<HighLevelOpcode>(int(base) + int(6));
+    }
+    switch (before) {
+        case BasicTypeKind::CHAR:
+            break;
+        case BasicTypeKind::SHORT:
+            base = static_cast<HighLevelOpcode>(int(base) + int(3));
+            break;
+        case BasicTypeKind::INT:
+            base = static_cast<HighLevelOpcode>(int(base) + int(5));
+            break;
+        default:
+            RuntimeError::raise("Invalid conversion");
+    }
+    switch (after) {
+        case BasicTypeKind::SHORT:
+            base = static_cast<HighLevelOpcode>(int(base) + int(1));
+            break;
+        case BasicTypeKind::INT:
+            base = static_cast<HighLevelOpcode>(int(base) + int(2));
+            break;
+        case BasicTypeKind::LONG:
+            base = static_cast<HighLevelOpcode>(int(base) + int(3));
+            break;
+        default:
+            RuntimeError::raise("Invalid conversion");
+    }
+    return base;
 }

@@ -67,10 +67,9 @@ void LocalStorageAllocation::assign_variable_storage(Node *declarator, Node *bas
                 std::cout << "/* variable '" << declarator->get_str() << "' allocated to vr" << next_vreg << " */" << std::endl;
                 vreg_boundary+=declarator->get_symbol()->get_type()->get_storage_size();
             } else {
-                unsigned new_mem = assign_array(base->get_type());
+                unsigned new_mem = assign_array(declarator->get_type());
                 declarator->get_symbol()->set_offset(new_mem);
                 std::cout << "/* variable '" << declarator->get_str() << "' allocated " << m_storage_calc.get_size() << " bytes of storage at offset " << new_mem << " */" << std::endl;
-
                 m_total_local_storage+=m_storage_calc.get_size();
             }
 

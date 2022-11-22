@@ -51,4 +51,5 @@ private:
 
     Operand get_offset_address(Node *n);
 
+    static HighLevelOpcode get_conversion_code(bool sign, BasicTypeKind before, BasicTypeKind after);
 };
