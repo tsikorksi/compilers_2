@@ -12,6 +12,5 @@ PrintLowLevelCode::~PrintLowLevelCode() {
 void PrintLowLevelCode::print_instructions(const std::shared_ptr<InstructionSequence> &iseq) {
   LowLevelFormatter formatter;
   PrintInstructionSequence print_iseq(&formatter);
-
-  print_iseq.print(iseq.get());
+    print_iseq.print(iseq.get());
 }

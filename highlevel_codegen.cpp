@@ -78,6 +78,7 @@ void HighLevelCodegen::visit_unary_expression(Node *n) {
                 HighLevelOpcode mov_opcode = get_opcode(HINS_mov_b, n->get_kid(1)->get_type());
                 m_hl_iseq->append(new Instruction(mov_opcode, op, n->get_kid(1)->get_operand()));
                 n->set_operand(op.to_memref());
+                m_next_vreg--;
             } else {
                 n->set_operand(n->get_kid(1)->get_operand().to_memref());
             }
@@ -200,7 +201,6 @@ void HighLevelCodegen::visit_binary_expression(Node *n) {
         m_hl_iseq->append(new Instruction (mov_opcode, lhs, rhs));
         n->set_operand(lhs);
         // Save ourselves too many extra vregs
-        //m_next_vreg--;
         return;
     }
 
@@ -249,6 +249,7 @@ void HighLevelCodegen::visit_binary_expression(Node *n) {
     // Make the change
     m_hl_iseq->append(new Instruction(get_opcode(op, n->get_kid(1)->get_type()), dest, lhs, rhs));
     n->set_operand(dest);
+    m_next_vreg--;
 }
 
 void HighLevelCodegen::visit_function_call_expression(Node *n) {
@@ -285,23 +286,24 @@ void HighLevelCodegen::visit_array_element_ref_expression(Node *n) {
 
     // multiply to get to actual address of local variable
     Operand mult_dest(Operand::VREG, next_temp_vreg());
-    Operand size_element(Operand::IMM_IVAL, n->get_type()->get_storage_size());
-    HighLevelOpcode mul_opcode = get_opcode(HINS_mul_b, element_type);
+    Operand size_element(Operand::IMM_IVAL, element_type->get_storage_size());
+    auto mul_opcode = static_cast<HighLevelOpcode>(get_opcode(HINS_mul_b, element_type) + 1);
     m_hl_iseq->append(new Instruction(mul_opcode, mult_dest, dest_up, size_element));
 
     // add value of offset
     Operand final_dest(Operand::VREG, next_temp_vreg());
-    HighLevelOpcode add_opcode = get_opcode(HINS_add_b, element_type);
+    auto add_opcode = static_cast<HighLevelOpcode>(get_opcode(HINS_add_b, element_type) + 1);
     m_hl_iseq->append(new Instruction(add_opcode, final_dest, address_register, mult_dest));
 
     // set Operand to the location of the destination
     n->set_operand(final_dest.to_memref());
+    m_next_vreg-=3;
 }
 
 /// Set local operand to the stored vreg of the variable
 /// \param n local node
 void HighLevelCodegen::visit_variable_ref(Node *n) {
-    if (n->get_symbol()->is_stack() || n->get_symbol()->needs_address()) {
+    if (n->get_symbol()->is_stack() || n->get_symbol()->needs_address() || n->get_type()->is_struct()) {
         Operand op = get_offset_address(n);
         if (n->get_symbol()->needs_address()) {
             op = op.to_memref();
@@ -343,7 +345,6 @@ void HighLevelCodegen::visit_literal_value(Node *n) {
     HighLevelOpcode mov_opcode = get_opcode(HINS_mov_b, n->get_type());
     m_hl_iseq->append(new Instruction(mov_opcode, dest, rhs));
     n->set_operand(dest);
-
 }
 
 std::string HighLevelCodegen::next_label() {
@@ -375,6 +376,7 @@ void HighLevelCodegen::visit_field_ref_expression(Node *n) {
     m_hl_iseq->append(new Instruction(add_opcode, final_dest, dest, address_register));
 
     n->set_operand(final_dest.to_memref());
+    m_next_vreg-=2;
 }
 
 void HighLevelCodegen::visit_indirect_field_ref_expression(Node *n) {
@@ -402,6 +404,7 @@ void HighLevelCodegen::visit_indirect_field_ref_expression(Node *n) {
     m_hl_iseq->append(new Instruction(add_opcode, final_dest, dest, address_register));
 
     n->set_operand(final_dest.to_memref());
+    m_next_vreg-=2;
 }
 
 int HighLevelCodegen::next_temp_vreg() {
@@ -418,10 +421,11 @@ Operand HighLevelCodegen::get_offset_address(Node * n) {
     offset = n->get_symbol()->get_offset();
 
     m_hl_iseq->append(new Instruction(HINS_localaddr, address_register, Operand(Operand::IMM_IVAL, offset)));
+
     return address_register;
 }
 
-HighLevelOpcode HighLevelCodegen::get_conversion_code(bool sign, BasicTypeKind before, BasicTypeKind after) {
+[[maybe_unused]] HighLevelOpcode HighLevelCodegen::get_conversion_code(bool sign, BasicTypeKind before, BasicTypeKind after) {
     HighLevelOpcode base = HINS_sconv_bw;
     if (sign) {
         base = static_cast<HighLevelOpcode>(int(base) + int(6));

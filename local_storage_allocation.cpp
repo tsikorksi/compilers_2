@@ -11,16 +11,20 @@ LocalStorageAllocation::LocalStorageAllocation()
 LocalStorageAllocation::~LocalStorageAllocation() = default;
 
 void LocalStorageAllocation::visit_declarator_list(Node *n) {
-    if (n->has_symbol() && n->get_type()->is_struct()) {
+    Node *maybe_struct = n->get_kid(0);
+    if (maybe_struct->has_symbol() && maybe_struct->get_symbol()->get_type()->is_struct()) {
         StorageCalculator struct_calc;
-        for (unsigned i = 0; i < n->get_num_kids(); i++) {
-            unsigned new_mem = struct_calc.add_field(n->get_kid(i)->get_type());
-            n->get_symbol()->get_type()->find_member(n->get_kid(i)->get_str())->set_offset(new_mem);
+
+        for (unsigned i = 0; i < maybe_struct->get_type()->get_num_members(); i++) {
+            Member member = maybe_struct->get_type()->get_member(i);
+            unsigned new_mem = struct_calc.add_field(member.get_type());
+            maybe_struct->get_type()->get_member(i).set_offset(new_mem);
         }
         struct_calc.finish();
+        maybe_struct->get_symbol()->set_offset(m_total_local_storage);
+        std::cout << "/* struct '" << maybe_struct->get_str() << "' allocated " << struct_calc.get_size() << " bytes at offset " << m_total_local_storage <<  " */" << std::endl;
         m_total_local_storage += struct_calc.get_size();
-        m_storage_calc.add_field(n->get_type());
-        std::cout << "/* struct '" << n->get_str() << "' allocated " << struct_calc.get_size() << " bytes " <<  " */" << std::endl;
+        m_storage_calc.add_field(maybe_struct->get_type());
 
     } else {
         for (unsigned i = 0; i < n->get_num_kids(); i++) {

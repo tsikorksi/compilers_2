@@ -131,7 +131,7 @@ std::shared_ptr<InstructionSequence> LowLevelCodeGen::translate_hl_to_ll(const s
     if ((m_total_memory_storage) % 16 != 0)
         m_total_memory_storage += (16 - (m_total_memory_storage % 16));
 
-    printf("/* Function \'%s\': %d bytes of local storage allocated in stack frame */\n", ll_iseq->get_funcdef_ast()->get_symbol()->get_name().c_str(), m_total_memory_storage);
+    std::cout << "/* Function '"<<ll_iseq->get_funcdef_ast()->get_symbol()->get_name().c_str() << "': " << m_total_memory_storage << " bytes of local storage allocated in stack frame  */" << std::endl;
 
 
 
@@ -143,7 +143,6 @@ std::shared_ptr<InstructionSequence> LowLevelCodeGen::translate_hl_to_ll(const s
         // label in the low-level instruction sequence
         if (i.has_label())
             ll_iseq->define_label(i.get_label());
-
         // Translate the high-level instruction into one or more low-level instructions
         translate_instruction(hl_ins, ll_iseq);
     }
@@ -243,6 +242,8 @@ void LowLevelCodeGen::translate_instruction(Instruction *hl_ins, const std::shar
     // destination operand of a high-level instruction. This should be useful
     // for choosing the appropriate low-level instructions and
     // machine register operands.
+
+
 
     // 1 OPERAND
 
