@@ -156,7 +156,7 @@ void HighLevelCodegen::visit_for_statement(Node *n) {
     m_hl_iseq->define_label(jump_out);
     // evaluate comparison, return to top if true
     visit(n->get_kid(1));
-    m_hl_iseq->append(new Instruction(HINS_cjmp_f, n->get_kid(1)->get_operand() , Operand(Operand::LABEL, jump_back)));
+    m_hl_iseq->append(new Instruction(HINS_cjmp_t, n->get_kid(1)->get_operand() , Operand(Operand::LABEL, jump_back)));
 
 
 }
@@ -200,7 +200,7 @@ void HighLevelCodegen::visit_binary_expression(Node *n) {
         m_hl_iseq->append(new Instruction (mov_opcode, lhs, rhs));
         n->set_operand(lhs);
         // Save ourselves too many extra vregs
-        m_next_vreg--;
+        //m_next_vreg--;
         return;
     }
 
@@ -296,11 +296,6 @@ void HighLevelCodegen::visit_array_element_ref_expression(Node *n) {
 
     // set Operand to the location of the destination
     n->set_operand(final_dest.to_memref());
-
-
-    // save ourselves some vregs
-    m_next_vreg-=5;
-
 }
 
 /// Set local operand to the stored vreg of the variable
