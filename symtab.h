@@ -24,6 +24,7 @@ private:
     bool m_is_defined;
     int m_vreg = -1;
     unsigned m_offset = -1;
+    bool m_on_stack = false;
 
     // value semantics prohibited
     Symbol(const Symbol &);
@@ -44,11 +45,13 @@ public:
     SymbolTable *get_symtab() const;
     bool is_defined() const;
 
+    bool is_stack() const {if (m_on_stack) {return true;}return false;}
+
     int get_vreg() {return m_vreg;};
     void set_vreg(int m_next_vreg) {m_vreg = m_next_vreg;};
 
     unsigned get_offset() {return m_offset;};
-    void set_offset(unsigned m_next_offset) {m_offset = m_next_offset;};
+    void set_offset(unsigned m_next_offset);;
 
     bool in_register() { return m_vreg; }
 };

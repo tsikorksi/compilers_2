@@ -14,7 +14,7 @@ Symbol::Symbol(SymbolKind kind, const std::string &name, const std::shared_ptr<T
         , m_name(name)
         , m_type(type)
         , m_symtab(symtab)
-        , m_is_defined(is_defined),m_vreg(-1), m_offset(-1) {
+        , m_is_defined(is_defined),m_vreg(-1), m_offset(-1), m_on_stack(false) {
 }
 
 Symbol::~Symbol() {
@@ -42,6 +42,11 @@ SymbolTable *Symbol::get_symtab() const {
 
 bool Symbol::is_defined() const {
     return m_is_defined;
+}
+
+void Symbol::set_offset(unsigned int m_next_offset) {
+    m_on_stack = true;
+    m_offset = m_next_offset;
 }
 
 ////////////////////////////////////////////////////////////////////////

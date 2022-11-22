@@ -264,7 +264,8 @@ void HighLevelCodegen::visit_array_element_ref_expression(Node *n) {
    std::shared_ptr<Type> element_type = n->get_type();
 
     // add offset to local variable
-    Operand address_register = get_offset_address(n);
+    visit(n->get_kid(0));
+    Operand address_register = n->get_kid(0)->get_operand();
 
     // Move the value of the element location to
     visit(n->get_kid(1));
@@ -297,9 +298,13 @@ void HighLevelCodegen::visit_array_element_ref_expression(Node *n) {
 /// Set local operand to the stored vreg of the variable
 /// \param n local node
 void HighLevelCodegen::visit_variable_ref(Node *n) {
-    Symbol * sym = n->get_symbol();
-    Operand local(Operand::VREG, sym->get_vreg());
-    n->set_operand(local);
+    if (n->get_symbol()->is_stack()) {
+        n->set_operand(get_offset_address(n));
+    } else {
+        Symbol * sym = n->get_symbol();
+        Operand local(Operand::VREG, sym->get_vreg());
+        n->set_operand(local);
+    }
 }
 
 void HighLevelCodegen::visit_literal_value(Node *n) {
@@ -348,7 +353,7 @@ void HighLevelCodegen::visit_field_ref_expression(Node *n) {
 
     std::shared_ptr<Type> struct_type = n->get_kid(0)->get_type();
 
-    Operand address_register = get_offset_address(n);
+    Operand address_register = n->get_kid(0)->get_operand();
 
     // Move the value of the offset of the field
     const Member *accessed_member = struct_type->find_member(n->get_kid(1)->get_str());
@@ -375,7 +380,7 @@ void HighLevelCodegen::visit_indirect_field_ref_expression(Node *n) {
 
     std::shared_ptr<Type> struct_type = n->get_kid(0)->get_type()->get_base_type();
 
-    Operand address_register = get_offset_address(n);
+    Operand address_register = n->get_kid(0)->get_operand();
 
     // Move the value of the offset of the field
     const Member *accessed_member = struct_type->find_member(n->get_kid(1)->get_str());
@@ -403,11 +408,7 @@ Operand HighLevelCodegen::get_offset_address(Node * n) {
     // add offset of struct to local variable
     Operand address_register(Operand::VREG, next_temp_vreg());
     unsigned offset;
-    if (n->get_type()->is_array()) {
-        offset = n->get_kid(0)->get_symbol()->get_offset();
-    } else {
-        offset = 0;
-    }
+    offset = n->get_symbol()->get_offset();
 
     m_hl_iseq->append(new Instruction(HINS_localaddr, address_register, Operand(Operand::IMM_IVAL, offset)));
     return address_register;
