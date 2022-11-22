@@ -26,6 +26,7 @@ public:
     int get_next_label_num() const { return m_next_label_num; }
 
     virtual void visit_function_definition(Node *n);
+    virtual void visit_function_parameter_list(Node *n);
     virtual void visit_expression_statement(Node *n);
     virtual void visit_unary_expression(Node *n);
     virtual void visit_return_statement(Node *n);
@@ -49,4 +50,5 @@ private:
     int next_temp_vreg();
 
     Operand get_offset_address(Node *n);
+
 };

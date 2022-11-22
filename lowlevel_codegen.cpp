@@ -392,8 +392,16 @@ LowLevelCodeGen::get_ll_operand(Operand hl_operand, int size, const std::shared_
     }
     else {
         Operand ll = Operand(Operand::MREG64_MEM_OFF, MREG_RBP, get_offset(hl_operand.get_base_reg()));
+        if (hl_operand.is_memref()) {
+            Operand reg_op(select_mreg_kind(8), MREG_R11);
+
+            // always 64 bit
+            ll_iseq->append(new Instruction(MINS_MOVQ, ll, reg_op));
+            return {Operand::MREG64_MEM, MREG_R11};
+        }
         return ll;
     }
+    RuntimeError::raise("Low level Operand cannot be established");
 }
 
 

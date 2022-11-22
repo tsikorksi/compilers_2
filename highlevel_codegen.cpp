@@ -39,6 +39,9 @@ void HighLevelCodegen::visit_function_definition(Node *n) {
 
     m_hl_iseq->append(new Instruction(HINS_enter, Operand(Operand::IMM_IVAL, total_local_storage)));
 
+    // visit params
+    visit(n->get_kid(2));
+
     // visit body
     visit(n->get_kid(3));
 
@@ -46,6 +49,15 @@ void HighLevelCodegen::visit_function_definition(Node *n) {
     m_hl_iseq->append(new Instruction(HINS_leave, Operand(Operand::IMM_IVAL, total_local_storage)));
     m_hl_iseq->append(new Instruction(HINS_ret));
     n->get_symbol()->set_vreg(m_next_vreg-1);
+}
+
+void HighLevelCodegen::visit_function_parameter_list(Node *n) {
+    for (unsigned i = 0; i < n->get_num_kids(); i++) {
+        Operand param (Operand::VREG, i+1);
+        Operand local_variable (Operand::VREG, n->get_kid(i)->get_symbol()->get_vreg());
+        HighLevelOpcode mov_opcode = get_opcode(HINS_mov_b, n->get_kid(i)->get_kid(0)->get_type());
+        m_hl_iseq->append(new Instruction(mov_opcode, local_variable, param));
+    }
 }
 
 void HighLevelCodegen::visit_expression_statement(Node *n) {
@@ -235,7 +247,7 @@ void HighLevelCodegen::visit_function_call_expression(Node *n) {
     std::string func = n->get_kid(0)->get_symbol()->get_name();
     visit_children(n->get_kid(1));
     if (n->get_kid(1)->get_num_kids() > 9) {
-        // NEED TO ALLOCATE TO MEM
+        // NEED TO ALLOCATE TO MEM, but out of Scope
     }
     else {
         for (unsigned i = 0; i < n->get_kid(1)->get_num_kids(); i++) {
