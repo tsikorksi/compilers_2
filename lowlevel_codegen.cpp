@@ -210,6 +210,7 @@ namespace {
 void LowLevelCodeGen::translate_instruction(Instruction *hl_ins, const std::shared_ptr<InstructionSequence> &ll_iseq) {
     auto hl_opcode = HighLevelOpcode(hl_ins->get_opcode());
 
+
     if (hl_opcode == HINS_enter) {
         // Function prologue: this will create an ABI-compliant stack frame.
         // The local variable area is *below* the address in %rbp, and local storage
@@ -248,7 +249,17 @@ void LowLevelCodeGen::translate_instruction(Instruction *hl_ins, const std::shar
     Operand dest_operand = hl_ins->get_operand(0);
 
     if (hl_opcode == HINS_jmp) {
-        ll_iseq->append(new Instruction(MINS_JMP, dest_operand ));
+        ll_iseq->append(new Instruction(MINS_JMP, dest_operand));
+        return;
+    }
+
+    if (hl_opcode == HINS_nop) {
+        ll_iseq->append(new Instruction(MINS_NOP));
+        return;
+    }
+
+    if (hl_opcode == HINS_call) {
+        ll_iseq->append(new Instruction(MINS_CALL, dest_operand));
         return;
     }
 
@@ -259,7 +270,7 @@ void LowLevelCodeGen::translate_instruction(Instruction *hl_ins, const std::shar
     int dest_size = highlevel_opcode_get_dest_operand_size(hl_opcode);
     dest_operand = get_ll_operand(hl_ins->get_operand(0), dest_size, ll_iseq);
 
-
+    // mov
     if (match_hl(HINS_mov_b, hl_opcode)) {
 
         LowLevelOpcode mov_opcode = select_ll_opcode(MINS_MOVB, src_size);
@@ -277,6 +288,7 @@ void LowLevelCodeGen::translate_instruction(Instruction *hl_ins, const std::shar
         return;
     }
 
+    // cjmp
     if (hl_opcode == HINS_cjmp_t || hl_opcode == HINS_cjmp_f) {
         // The source of a HINS_cjmp does not have a size so we make it L
         ll_iseq->append(new Instruction(MINS_CMPL, Operand(Operand::IMM_IVAL, 0), dest_operand));
@@ -286,6 +298,7 @@ void LowLevelCodeGen::translate_instruction(Instruction *hl_ins, const std::shar
             return;
         }
         ll_iseq->append(new Instruction(MINS_JE, src_operand));
+        return;
     }
 
     // 3 OPERAND
@@ -294,8 +307,10 @@ void LowLevelCodeGen::translate_instruction(Instruction *hl_ins, const std::shar
     LowLevelOpcode mov_opcode = select_ll_opcode(MINS_MOVB, src_second_size);
     Operand temp(select_mreg_kind(src_second_size), MREG_R10);
 
-
-    if (match_hl(HINS_add_b, hl_opcode)) {
+    // math
+    if (match_hl(HINS_add_b, hl_opcode) || match_hl(HINS_sub_b, hl_opcode)
+    || match_hl(HINS_mul_b, hl_opcode)  || match_hl(HINS_div_b, hl_opcode)
+    || match_hl(HINS_mod_b, hl_opcode)  ) {
 
         // Move one into the other, then add using r10 as a temp variable
         ll_iseq->append(new Instruction(mov_opcode, src_operand, temp));
@@ -304,6 +319,8 @@ void LowLevelCodeGen::translate_instruction(Instruction *hl_ins, const std::shar
         return;
     }
 
+
+    // cmp
     if (match_hl(HINS_cmplt_b, hl_opcode)|| match_hl(HINS_cmplte_b, hl_opcode)
     || match_hl(HINS_cmpgt_b, hl_opcode) || match_hl(HINS_cmpgte_b, hl_opcode)
     || match_hl(HINS_cmpeq_b, hl_opcode) || match_hl(HINS_cmpneq_b, hl_opcode)) {
@@ -386,5 +403,5 @@ LowLevelCodeGen::get_ll_operand(Operand hl_operand, int size, const std::shared_
  * @return the actual memory offset
  */
 long LowLevelCodeGen::get_offset(int vreg) const {
-    return -1 * (vreg_boundary - ((vreg - 10) * 8));
+    return -1 * (m_total_memory_storage - ((vreg - 10) * 8));
 }
