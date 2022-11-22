@@ -90,16 +90,19 @@ void HighLevelCodegen::visit_while_statement(Node *n) {
     std::string jump_back = next_label();
     std::string jump_end = next_label();
 
+    // jump to comparison, see if true
+    m_hl_iseq->append(new Instruction(HINS_jmp, Operand(Operand::LABEL, jump_end)));
+
     // Set point to return to after each loop
     m_hl_iseq->define_label(jump_back);
-    // visit comparison
-    visit(n->get_kid(0));
-    m_hl_iseq->append(new Instruction(HINS_cjmp_t, n->get_kid(0)->get_operand() , Operand(Operand::LABEL, jump_end)));
+
     // visit body
     visit(n->get_kid(1));
-    m_hl_iseq->append(new Instruction(HINS_jmp, Operand(Operand::LABEL, jump_back)));
-    // Set point to jump to when no longer true
+
+    // visit comparison
     m_hl_iseq->define_label(jump_end);
+    visit(n->get_kid(0));
+    m_hl_iseq->append(new Instruction(HINS_cjmp_t, n->get_kid(0)->get_operand() , Operand(Operand::LABEL, jump_back)));
 
 }
 
@@ -176,6 +179,8 @@ void HighLevelCodegen::visit_binary_expression(Node *n) {
         // move one into the other
         m_hl_iseq->append(new Instruction (mov_opcode, lhs, rhs));
         n->set_operand(lhs);
+        // Save ourselves too many extra vregs
+        m_next_vreg--;
         return;
     }
 
