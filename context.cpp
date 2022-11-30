@@ -140,7 +140,8 @@ void Context::highlevel_codegen(ModuleCollector *module_collector) {
     // Any local variable not assigned storage in memory will be allocated
     // a vreg as its storage.
 
-
+    LocalStorageAllocation local_storage_alloc;
+    local_storage_alloc.visit(m_ast);
 
     // collect all of the global variables
     SymbolTable *globals = m_sema.get_global_symtab();
@@ -156,8 +157,6 @@ void Context::highlevel_codegen(ModuleCollector *module_collector) {
     for (auto i = m_ast->cbegin(); i != m_ast->cend(); ++i) {
         Node *child = *i;
         if (child->get_tag() == AST_FUNCTION_DEFINITION) {
-            LocalStorageAllocation local_storage_alloc;
-            local_storage_alloc.visit(child);
             HighLevelCodegen hl_codegen(next_label_num, local_storage_alloc.next());
             hl_codegen.visit(child);
             std::vector<std::string> strings = hl_codegen.get_strings();

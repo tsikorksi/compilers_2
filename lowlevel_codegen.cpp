@@ -118,7 +118,7 @@ std::shared_ptr<InstructionSequence> LowLevelCodeGen::translate_hl_to_ll(const s
     // any additional memory that is needed for virtual registers,
     // spilled machine registers, etc.
     vreg_boundary = ll_iseq->get_funcdef_ast()->get_symbol()->get_vreg();
-    vreg_boundary = (vreg_boundary - 9) * 8;
+    vreg_boundary = (vreg_boundary - 8) * 8;
     std::cout << "/* Function '"<<ll_iseq->get_funcdef_ast()->get_symbol()->get_name().c_str() << "': uses "<< vreg_boundary <<" total bytes of memory storage for vregs */" << std::endl;
     std::cout << "/* Function '"<<ll_iseq->get_funcdef_ast()->get_symbol()->get_name().c_str() << "': placing vreg storage at offset -" << vreg_boundary << " from %rbp */" << std::endl;
 
@@ -376,12 +376,27 @@ void LowLevelCodeGen::translate_instruction(Instruction *hl_ins, const std::shar
 
     // math
     if (match_hl(HINS_add_b, hl_opcode) || match_hl(HINS_sub_b, hl_opcode)
-        || match_hl(HINS_mul_b, hl_opcode)  || match_hl(HINS_div_b, hl_opcode)
-        || match_hl(HINS_mod_b, hl_opcode)  ) {
+        || match_hl(HINS_mul_b, hl_opcode) || match_hl(HINS_mod_b, hl_opcode)  ) {
 
         // Move one into the other, then add using r10 as a temp variable
         ll_iseq->append(new Instruction(mov_opcode, src_operand, temp));
         ll_iseq->append(new Instruction(HL_TO_LL.at(hl_opcode), src_second_operand, temp));
+        ll_iseq->append(new Instruction(mov_opcode, temp, dest_operand));
+        return;
+    }
+
+    // div
+    if (match_hl(HINS_div_b, hl_opcode)) {
+
+        // Move one into the other, then add using r10 as a temp variable
+        ll_iseq->append(new Instruction(mov_opcode, src_operand, temp));
+        if (hl_opcode == HINS_div_q) {
+            ll_iseq->append(new Instruction(MINS_IDIVQ, src_second_operand, temp));
+
+        } else {
+            ll_iseq->append(new Instruction(MINS_IDIVL, src_second_operand, temp));
+
+        }
         ll_iseq->append(new Instruction(mov_opcode, temp, dest_operand));
         return;
     }
@@ -477,5 +492,5 @@ LowLevelCodeGen::get_ll_operand(Operand hl_operand, int size, const std::shared_
  * @return the actual memory offset
  */
 long LowLevelCodeGen::get_offset(int vreg) const {
-    return -1 * (m_total_memory_storage - ((vreg - 10) * 8));
+    return -1 * (vreg_boundary - ((vreg - 11) * 8));
 }

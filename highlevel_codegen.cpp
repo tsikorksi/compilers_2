@@ -288,11 +288,17 @@ void HighLevelCodegen::visit_array_element_ref_expression(Node *n) {
     Operand mult_dest(Operand::VREG, next_temp_vreg());
     Operand size_element(Operand::IMM_IVAL, element_type->get_storage_size());
     auto mul_opcode = static_cast<HighLevelOpcode>(get_opcode(HINS_mul_b, element_type) + 1);
+    if (mul_opcode == HINS_div_b) {
+        mul_opcode = HINS_mul_q;
+    }
     m_hl_iseq->append(new Instruction(mul_opcode, mult_dest, dest_up, size_element));
 
     // add value of offset
     Operand final_dest(Operand::VREG, next_temp_vreg());
     auto add_opcode = static_cast<HighLevelOpcode>(get_opcode(HINS_add_b, element_type) + 1);
+    if (add_opcode == HINS_sub_b) {
+        add_opcode = HINS_add_q;
+    }
     m_hl_iseq->append(new Instruction(add_opcode, final_dest, address_register, mult_dest));
 
     // set Operand to the location of the destination
