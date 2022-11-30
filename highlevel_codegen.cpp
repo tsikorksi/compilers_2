@@ -55,7 +55,7 @@ void HighLevelCodegen::visit_function_parameter_list(Node *n) {
     for (unsigned i = 0; i < n->get_num_kids(); i++) {
         Operand param (Operand::VREG, i+1);
         Operand local_variable (Operand::VREG, n->get_kid(i)->get_symbol()->get_vreg());
-        HighLevelOpcode mov_opcode = get_opcode(HINS_mov_b, n->get_kid(i)->get_kid(0)->get_type());
+        HighLevelOpcode mov_opcode = get_opcode(HINS_mov_b, n->get_kid(i)->get_kid(1)->get_type());
         m_hl_iseq->append(new Instruction(mov_opcode, local_variable, param));
     }
 }
