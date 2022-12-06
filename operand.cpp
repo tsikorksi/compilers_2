@@ -174,6 +174,13 @@ Operand Operand::to_memref() const {
   return dup;
 }
 
+Operand Operand::from_memref() const {
+    assert(m_kind == Operand::VREG_MEM || m_kind == Operand::MREG64_MEM);
+    Operand dup = *this;
+    dup.m_kind = (m_kind == Operand::VREG_MEM) ? Operand::VREG : Operand::MREG64;
+    return dup;
+}
+
 std::string Operand::get_label() const {
   assert(m_kind == Operand::LABEL || m_kind == Operand::IMM_LABEL);
   return m_label;
