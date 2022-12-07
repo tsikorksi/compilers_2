@@ -36,7 +36,6 @@
 #include "local_storage_allocation.h"
 #include "lowlevel_codegen.h"
 #include "context.h"
-#include "strings.h"
 
 Context::Context()
         : m_ast(nullptr) {
@@ -128,7 +127,7 @@ void Context::analyze() {
     m_sema.visit(m_ast);
 }
 
-void Context::highlevel_codegen(ModuleCollector *module_collector) {
+void Context::highlevel_codegen(ModuleCollector *module_collector, bool m_optimize) {
     // Assign
     //   - vreg numbers to parameters
     //   - local storage offsets to local variables requiring storage in
@@ -157,8 +156,9 @@ void Context::highlevel_codegen(ModuleCollector *module_collector) {
     for (auto i = m_ast->cbegin(); i != m_ast->cend(); ++i) {
         Node *child = *i;
         if (child->get_tag() == AST_FUNCTION_DEFINITION) {
-            HighLevelCodegen hl_codegen(next_label_num, local_storage_alloc.next());
+            HighLevelCodegen hl_codegen(next_label_num, local_storage_alloc.next(), m_optimize);
             hl_codegen.visit(child);
+
             std::vector<std::string> strings = hl_codegen.get_strings();
             for (int l = 0; l < (int) strings.size(); l++){
                 std::ostringstream stream;
@@ -231,5 +231,5 @@ namespace {
 
 void Context::lowlevel_codegen(ModuleCollector *module_collector, bool optimize) {
     LowLevelCodeGenModuleCollector ll_codegen_module_collector(module_collector, optimize);
-    highlevel_codegen(&ll_codegen_module_collector);
+    highlevel_codegen(&ll_codegen_module_collector, optimize);
 }

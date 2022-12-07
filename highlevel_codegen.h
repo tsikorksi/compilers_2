@@ -10,6 +10,7 @@
 // a function definition AST node.
 class HighLevelCodegen : public ASTVisitor {
 private:
+    bool m_optimize;
     int m_next_vreg;
     int m_next_label_num;
     std::string m_return_label_name; // name of the label that return instructions should target
@@ -18,7 +19,7 @@ private:
 
 public:
     // the next_label_num controls where the next_label() member function
-    HighLevelCodegen(int next_label_num, int next_vreg);
+    HighLevelCodegen(int next_label_num, int next_vreg, bool m_optimize);
     virtual ~HighLevelCodegen();
 
     std::shared_ptr<InstructionSequence> get_hl_iseq() { return m_hl_iseq; }

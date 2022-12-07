@@ -1,16 +1,21 @@
 #include "optimizations.h"
 
-#include <utility>
 #include "cfg.h"
 
 // HIGH LEVEL
 
-LocalOptimizationHighLevel::LocalOptimizationHighLevel(std::shared_ptr<ControlFlowGraph> cfg) : cfg(std::move(cfg)) {
+LocalOptimizationHighLevel::LocalOptimizationHighLevel(
+        const std::shared_ptr<ControlFlowGraph>& cfg)
+        : ControlFlowGraphTransform(cfg){
 
 }
 
-std::shared_ptr <ControlFlowGraph> LocalOptimizationHighLevel::transform_cfg() {
+std::shared_ptr<ControlFlowGraph> LocalOptimizationHighLevel::transform_cfg() {
     return nullptr;
+}
+
+std::shared_ptr<InstructionSequence> LocalOptimizationHighLevel::transform_basic_block(const InstructionSequence *orig_bb) {
+
 }
 
 

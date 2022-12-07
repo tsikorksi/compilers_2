@@ -54,7 +54,7 @@ public:
 
   // functions for semantic analysis, code generation, etc.
   void analyze();
-  void highlevel_codegen(ModuleCollector *module_collector);
+  void highlevel_codegen(ModuleCollector *module_collector, bool m_optimize);
   void lowlevel_codegen(ModuleCollector *module_collector, bool optimize = false);
 };
 

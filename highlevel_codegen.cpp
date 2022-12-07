@@ -6,6 +6,8 @@
 #include "exceptions.h"
 #include "highlevel_codegen.h"
 #include "local_storage_allocation.h"
+#include "cfg.h"
+#include "optimizations.h"
 
 namespace {
 
@@ -21,8 +23,8 @@ namespace {
 
 }
 
-HighLevelCodegen::HighLevelCodegen(int next_label_num, int next_vreg)
-        : m_next_vreg(next_vreg), m_next_label_num(next_label_num), m_hl_iseq(new InstructionSequence()) {
+HighLevelCodegen::HighLevelCodegen(int next_label_num, int next_vreg, bool optimize)
+        : m_optimize(optimize), m_next_vreg(next_vreg), m_next_label_num(next_label_num) , m_hl_iseq(new InstructionSequence()) {
 }
 
 HighLevelCodegen::~HighLevelCodegen() = default;
@@ -49,6 +51,31 @@ void HighLevelCodegen::visit_function_definition(Node *n) {
     m_hl_iseq->append(new Instruction(HINS_leave, Operand(Operand::IMM_IVAL, total_local_storage)));
     m_hl_iseq->append(new Instruction(HINS_ret));
     n->get_symbol()->set_vreg(m_next_vreg-1);
+
+    Node *funcdef_ast = m_hl_iseq->get_funcdef_ast();
+
+    // cur_hl_iseq is the "current" version of the high-level IR,
+    // which could be a transformed version if we are doing optimizations
+    std::shared_ptr<InstructionSequence> cur_hl_iseq(m_hl_iseq);
+
+    if (m_optimize) {
+        // High-level optimizations
+
+        // Create a control-flow graph representation of the high-level code
+        HighLevelControlFlowGraphBuilder hl_cfg_builder(cur_hl_iseq);
+        std::shared_ptr<ControlFlowGraph> cfg = hl_cfg_builder.build();
+
+        // Do local optimizations
+        LocalOptimizationHighLevel hl_opts(cfg);
+        cfg = hl_opts.transform_cfg();
+
+        // Convert the transformed high-level CFG back to an InstructionSequence
+        cur_hl_iseq = cfg->create_instruction_sequence();
+
+        // The function definition AST might have information needed for
+        // low-level code generation
+        cur_hl_iseq->set_funcdef_ast(funcdef_ast);
+    }
 }
 
 void HighLevelCodegen::visit_function_parameter_list(Node *n) {
@@ -200,7 +227,6 @@ void HighLevelCodegen::visit_binary_expression(Node *n) {
         // move one into the other
         m_hl_iseq->append(new Instruction (mov_opcode, lhs, rhs));
         n->set_operand(lhs);
-        // Save ourselves too many extra vregs
         return;
     }
 
