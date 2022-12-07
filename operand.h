@@ -40,6 +40,7 @@ private:
     int m_basereg, m_index_reg;
     long m_imm_ival;
     std::string m_label;
+    bool callee_register = false;
 
 public:
     Operand(Kind kind = NONE);
@@ -94,8 +95,11 @@ public:
 
     // getters
     int get_base_reg() const;
+
     int get_index_reg() const;
+
     long get_imm_ival() const;
+
     long get_offset() const;
 
     Operand to_memref() const;
@@ -103,6 +107,10 @@ public:
     Operand from_memref() const;
 
     std::string get_label() const;
+
+    bool is_callee() const { return callee_register; };
+
+    void make_callee() { callee_register = true; };
 };
 
 #endif // OPERAND_H
