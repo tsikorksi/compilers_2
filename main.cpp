@@ -158,7 +158,7 @@ void process_source_file(const std::string &filename, Mode mode, bool optimize) 
         if (mode == Mode::COMPILE || mode == Mode::PRINT_LOWLEVEL_CFG)
           ctx.lowlevel_codegen(module_collector.get(), optimize);
         else
-          ctx.highlevel_codegen(module_collector.get());
+          ctx.highlevel_codegen(module_collector.get(), optimize);
       }
     }
   }

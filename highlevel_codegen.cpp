@@ -170,6 +170,8 @@ void HighLevelCodegen::visit_do_while_statement(Node *n) {
 void HighLevelCodegen::visit_for_statement(Node *n) {
     // evaluate assignment
     visit(n->get_kid(0));
+    // annotate the loop variable
+    n->get_kid(0)->get_kid(1)->get_operand().make_callee();
     std::string jump_back = next_label();
     std::string jump_out = next_label();
     // set return point for loop
