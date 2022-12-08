@@ -37,3 +37,11 @@ user    0m0.883s
 sys     0m0.000s
 
 -0.03s of real time
+
+DeadStoreElimination:
+This is the technique provided on the webpage. I noticed no change in highlevel code output, and thus no change in
+performance. Leaving this aside, we will see if perhaps it will shine later.
+
+CopyPropagation:
+I noticed no change in highlevel code output, and thus no change in
+performance. Leaving this aside, we will see if perhaps it will shine later.

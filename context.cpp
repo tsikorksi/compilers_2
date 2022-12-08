@@ -177,9 +177,20 @@ void Context::highlevel_codegen(ModuleCollector *module_collector, bool m_optimi
                 HighLevelControlFlowGraphBuilder hl_cfg_builder(cur_hl_iseq);
                 std::shared_ptr<ControlFlowGraph> cfg = hl_cfg_builder.build();
 
+                // live instruction analysis
+                LiveRegisters live_regs(cfg);
+                cfg = live_regs.transform_cfg();
+
+
                 // Do local optimizations
-                LocalOptimizationHighLevel hl_opts(cfg);
+                ConstantPropagation hl_opts(cfg);
                 cfg = hl_opts.transform_cfg();
+
+                // Copy propagation works but does nothing
+                CopyPropagation cp_opts(cfg);
+                cfg = cp_opts.transform_cfg();
+
+
 
                 // Convert the transformed high-level CFG back to an InstructionSequence
                 cur_hl_iseq = cfg->create_instruction_sequence();

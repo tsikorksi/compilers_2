@@ -7,13 +7,14 @@
 
 #include "cfg.h"
 #include "cfg_transform.h"
+#include "live_vregs.h"
 
-class LocalOptimizationHighLevel : public ControlFlowGraphTransform {
+class ConstantPropagation : public ControlFlowGraphTransform {
 private:
     std::shared_ptr<ControlFlowGraph> cfg;
 
 public:
-    explicit LocalOptimizationHighLevel(const std::shared_ptr<ControlFlowGraph>& cfg);
+    explicit ConstantPropagation(const std::shared_ptr<ControlFlowGraph>& cfg);
 
     std::shared_ptr<ControlFlowGraph> transform_cfg() override;
 
@@ -23,18 +24,40 @@ public:
 
     static bool match_hl(int base, int hl_opcode);
 
-    std::shared_ptr<InstructionSequence> copy_propagation(InstructionSequence *block);
 };
 
-class LocalOptimizationLowLevel {
-
+class CopyPropagation : public ControlFlowGraphTransform {
 private:
     std::shared_ptr<ControlFlowGraph> cfg;
+    std::map<int, int> constants;
 
 public:
-    explicit LocalOptimizationLowLevel(ControlFlowGraph cfg);
+    explicit CopyPropagation(const std::shared_ptr<ControlFlowGraph>& cfg);
 
-    std::shared_ptr<ControlFlowGraph> transform_cfg();
+    std::shared_ptr<InstructionSequence> transform_basic_block(const InstructionSequence *orig_bb) override;
+
+
+    static bool match_hl(int base, int hl_opcode);
+
+    std::shared_ptr<InstructionSequence> copy_propagation(InstructionSequence *block);
+
+    static bool is_caller_saved(int vreg_num);
 };
+
+
+class LiveRegisters : public ControlFlowGraphTransform {
+private:
+    LiveVregs m_live_vregs;
+
+public:
+    explicit LiveRegisters(const std::shared_ptr<ControlFlowGraph> &cfg);
+    ~LiveRegisters();
+
+    std::shared_ptr<InstructionSequence>
+    transform_basic_block(const InstructionSequence *orig_bb) override;
+
+    bool is_caller_saved(int vreg_num);
+};
+
 
 #endif //COMPILERS_2_OPTIMIZATIONS_H

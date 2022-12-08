@@ -1,4 +1,5 @@
 #include <cassert>
+#include <algorithm>
 #include "instruction.h"
 #include "exceptions.h"
 #include "instruction_seq.h"
@@ -32,6 +33,13 @@ void InstructionSequence::append(Instruction *ins) {
   m_instructions.push_back({ label: m_next_label, ins: ins });
   m_next_label = "";
 }
+
+void InstructionSequence::prepend(Instruction *ins) {
+    m_instructions.push_back({ label: m_next_label, ins: ins });
+    std::rotate(m_instructions.rbegin(), m_instructions.rbegin() + 1, m_instructions.rend());
+    m_next_label = "";
+}
+
 
 unsigned InstructionSequence::get_length() const {
   return unsigned(m_instructions.size());
