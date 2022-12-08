@@ -15,7 +15,7 @@ LocalOptimizationHighLevel::LocalOptimizationHighLevel(
 std::shared_ptr<InstructionSequence> LocalOptimizationHighLevel::transform_basic_block(const InstructionSequence *orig_bb) {
     std::shared_ptr<InstructionSequence> result;
     result = constant_propagation(orig_bb->duplicate());
-    result = constant_propagation(result->duplicate());
+    result = copy_propagation(result->duplicate());
 
 
     return result;
@@ -26,8 +26,10 @@ std::shared_ptr<InstructionSequence> LocalOptimizationHighLevel::transform_basic
 /// \return a shred_ptr to a Instruction Sequence
 std::shared_ptr<InstructionSequence> LocalOptimizationHighLevel::constant_propagation(InstructionSequence *block) {
     std::shared_ptr<InstructionSequence> result(new InstructionSequence());
-    // generate map of register number to constant value
-    //std::map<int, long> constants;
+    // empty  map of register number to constant value
+    std::map<int, int> constants;
+
+
     for (auto i = block->cbegin(); i != block->cend(); i++) {
         Instruction *instruction = *i;
         auto opcode = static_cast<HighLevelOpcode>(instruction->get_opcode());
@@ -86,7 +88,6 @@ std::shared_ptr<InstructionSequence> LocalOptimizationHighLevel::constant_propag
 
 
     }
-    // check if src is constant
 
 
     return result;
@@ -95,72 +96,74 @@ std::shared_ptr<InstructionSequence> LocalOptimizationHighLevel::constant_propag
 ///// Copy propagation, the same as constant propagation but vreg to vreg
 ///// \param block
 ///// \return
-//std::shared_ptr<InstructionSequence> LocalOptimizationHighLevel::copy_propagation(InstructionSequence *block) {
-//    std::shared_ptr<InstructionSequence> result(new InstructionSequence());
-//    // generate map of register number to constant value
-//    std::map<int, int> constants;
-//    for (auto i = block->cbegin(); i != block->cend(); i++) {
-//        Instruction *instruction = *i;
-//
-//        // Make sure not doing invalid instruction, enter jmp etc
-//        if (instruction->get_num_operands() < 2) {
-//            result->append(instruction->duplicate());
-//        } else {
-//            auto opcode = static_cast<HighLevelOpcode>(instruction->get_opcode());
-//            // We are moving constant into vreg
-//            if (match_hl(HighLevelOpcode::HINS_mov_b, opcode) && instruction->get_operand(1).has_base_reg()) {
-//                constants[instruction->get_operand(0).get_base_reg()] = instruction->get_operand(1).get_base_reg();
-//            }
-//
-//
-//            Operand origin = instruction->get_operand(0);
-//
-//            if (instruction->get_num_operands() == 2) {
-//                Operand left = instruction->get_operand(1);
-//
-//                if (left.has_base_reg() &&
-//                    constants.find(left.get_base_reg()) != constants.end() ) {
-//                    // Make new instruction with vreg swapped in
-//                    Operand copied_constant(Operand::VREG, constants[left.get_base_reg()]);
-//                    result->append(new Instruction(instruction->get_opcode(), origin, copied_constant));
-//                } else {
-//                    result->append(instruction->duplicate());
-//                }
-//
-//            } else if (instruction->get_num_operands() == 3) {
-//                // Make new instruction with vreg swapped in, trying either side
-//                Operand left = instruction->get_operand(1);
-//                Operand right = instruction->get_operand(2);
-//
-//                if (left.has_base_reg() &&
-//                    constants.find(left.get_base_reg()) != constants.end() ) {
-//
-//                    Operand copied_constant(Operand::VREG, constants[left.get_base_reg()]);
-//                    result->append(new Instruction(instruction->get_opcode(), origin, copied_constant, right));
-//                } else if (right.has_base_reg() &&
-//                           constants.find(right.get_base_reg()) != constants.end() ) {
-//
-//                    Operand copied_constant(Operand::VREG, constants[right.get_base_reg()]);
-//                    result->append(new Instruction(instruction->get_opcode(), origin, instruction->get_operand(1), copied_constant));
-//                } else if (left.has_base_reg() &&
-//                           constants.find(left.get_base_reg()) != constants.end() && right.has_base_reg() &&
-//                           constants.find(right.get_base_reg()) != constants.end()) {
-//                    Operand copied_left(Operand::VREG, constants[left.get_base_reg()]);
-//                    Operand copied_right(Operand::VREG, constants[right.get_base_reg()]);
-//                    result->append(new Instruction(instruction->get_opcode(), origin, copied_left, copied_right));
-//                } else {
-//                    result->append(instruction->duplicate());
-//                }
-//            } else {
-//                continue;
-//            }
-//
-//        }
-//        // check if src is constant
-//    }
-//
-//    return result;
-//}
+std::shared_ptr<InstructionSequence> LocalOptimizationHighLevel::copy_propagation(InstructionSequence *block) {
+    std::shared_ptr<InstructionSequence> result(new InstructionSequence());
+    // empty  map of register number to constant value
+    std::map<int, long> constants;
+
+
+    for (auto i = block->cbegin(); i != block->cend(); i++) {
+        Instruction *instruction = *i;
+        auto opcode = static_cast<HighLevelOpcode>(instruction->get_opcode());
+
+        // Make sure not doing invalid instruction, enter jmp etc
+        if (instruction->get_num_operands() < 2) {
+            result->append(instruction->duplicate());
+        } else if(match_hl(HighLevelOpcode::HINS_mov_b, opcode) && instruction->get_operand(1).has_base_reg()) {
+        // We are moving constant into vreg
+            constants[instruction->get_operand(0).get_base_reg()] = instruction->get_operand(1).get_base_reg();
+        }
+        else {
+
+            Operand origin = instruction->get_operand(0);
+
+            if (instruction->get_num_operands() == 2) {
+                Operand left = instruction->get_operand(1);
+
+                if (left.has_base_reg() &&
+                    constants.find(left.get_base_reg()) != constants.end() ) {
+                    // Make new instruction with constant swapped in
+                    Operand copied_constant(Operand::VREG, constants[left.get_base_reg()]);
+                    result->append(new Instruction(instruction->get_opcode(), origin, copied_constant));
+                } else {
+                    result->append(instruction->duplicate());
+                }
+
+            } else if (instruction->get_num_operands() == 3) {
+                // Make new instruction with constant swapped in, trying either side
+                Operand left = instruction->get_operand(1);
+                Operand right = instruction->get_operand(2);
+
+                if (left.has_base_reg() &&
+                    constants.find(left.get_base_reg()) != constants.end() ) {
+
+                    Operand copied_constant(Operand::VREG, constants[left.get_base_reg()]);
+                    result->append(new Instruction(instruction->get_opcode(), origin, copied_constant, right));
+                } else if (right.has_base_reg() &&
+                           constants.find(right.get_base_reg()) != constants.end() ) {
+
+                    Operand copied_constant(Operand::VREG, constants[right.get_base_reg()]);
+                    result->append(new Instruction(instruction->get_opcode(), origin, instruction->get_operand(1), copied_constant));
+                } else if (left.has_base_reg() &&
+                           constants.find(left.get_base_reg()) != constants.end() && right.has_base_reg() &&
+                           constants.find(right.get_base_reg()) != constants.end()) {
+                    Operand copied_left(Operand::VREG, constants[left.get_base_reg()]);
+                    Operand copied_right(Operand::VREG, constants[right.get_base_reg()]);
+                    result->append(new Instruction(instruction->get_opcode(), origin, copied_left, copied_right));
+                } else {
+                    result->append(instruction->duplicate());
+                }
+            } else {
+                continue;
+            }
+        }
+
+
+    }
+
+
+    return result;
+}
 
 
 
