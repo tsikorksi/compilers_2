@@ -11,6 +11,8 @@
 class LocalOptimizationHighLevel : public ControlFlowGraphTransform {
 private:
     std::shared_ptr<ControlFlowGraph> cfg;
+    std::map<int, long> constants;
+    std::map<int, int> copies;
 
 public:
     explicit LocalOptimizationHighLevel(const std::shared_ptr<ControlFlowGraph>& cfg);
@@ -18,6 +20,12 @@ public:
     std::shared_ptr<ControlFlowGraph> transform_cfg() override;
 
     std::shared_ptr<InstructionSequence> transform_basic_block(const InstructionSequence *orig_bb);
+
+    std::shared_ptr<InstructionSequence> constant_propagation(InstructionSequence *block);
+
+    static bool match_hl(int base, int hl_opcode);
+
+    std::shared_ptr<InstructionSequence> copy_propagation(InstructionSequence *block);
 };
 
 class LocalOptimizationLowLevel {

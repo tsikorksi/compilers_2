@@ -36,6 +36,8 @@
 #include "local_storage_allocation.h"
 #include "lowlevel_codegen.h"
 #include "context.h"
+#include "cfg.h"
+#include "optimizations.h"
 
 Context::Context()
         : m_ast(nullptr) {
@@ -159,6 +161,39 @@ void Context::highlevel_codegen(ModuleCollector *module_collector, bool m_optimi
             HighLevelCodegen hl_codegen(next_label_num, local_storage_alloc.next(), m_optimize);
             hl_codegen.visit(child);
 
+            std::shared_ptr<InstructionSequence> hl_iseq;
+
+            if (m_optimize) {
+                std::shared_ptr<InstructionSequence> m_hl_iseq = hl_codegen.get_hl_iseq();
+
+                Node *funcdef_ast = m_hl_iseq->get_funcdef_ast();
+
+                // cur_hl_iseq is the "current" version of the high-level IR,
+                // which could be a transformed version if we are doing optimizations
+                std::shared_ptr<InstructionSequence> cur_hl_iseq(m_hl_iseq);
+                // High-level optimizations
+
+                // Create a control-flow graph representation of the high-level code
+                HighLevelControlFlowGraphBuilder hl_cfg_builder(cur_hl_iseq);
+                std::shared_ptr<ControlFlowGraph> cfg = hl_cfg_builder.build();
+
+                // Do local optimizations
+                LocalOptimizationHighLevel hl_opts(cfg);
+                cfg = hl_opts.transform_cfg();
+
+                // Convert the transformed high-level CFG back to an InstructionSequence
+                cur_hl_iseq = cfg->create_instruction_sequence();
+
+                // The function definition AST might have information needed for
+                // low-level code generation
+                cur_hl_iseq->set_funcdef_ast(funcdef_ast);
+                hl_iseq = cur_hl_iseq;
+
+            } else {
+                hl_iseq = hl_codegen.get_hl_iseq();
+            }
+
+
             std::vector<std::string> strings = hl_codegen.get_strings();
             for (int l = 0; l < (int) strings.size(); l++){
                 std::ostringstream stream;
@@ -166,7 +201,6 @@ void Context::highlevel_codegen(ModuleCollector *module_collector, bool m_optimi
                 module_collector->collect_string_constant(stream.str(), hl_codegen.get_strings().at(l));
             }
             std::string fn_name = child->get_kid(1)->get_str();
-            std::shared_ptr<InstructionSequence> hl_iseq = hl_codegen.get_hl_iseq();
 
             // store a pointer to the function definition AST in the
             // high-level InstructionSequence: this is useful in case information
