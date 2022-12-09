@@ -38,10 +38,43 @@ sys     0m0.000s
 
 -0.03s of real time
 
-DeadStoreElimination:
-This is the technique provided on the webpage. I noticed no change in highlevel code output, and thus no change in
-performance. Leaving this aside, we will see if perhaps it will shine later.
-
 CopyPropagation:
-I noticed no change in highlevel code output, and thus no change in
-performance. Leaving this aside, we will see if perhaps it will shine later.
+Using the example:
+int main(void) {
+    int x, a, b;
+    a = b;
+    x = a;
+    return x;
+}
+We see the High Level code without copy propagation as:
+
+enter    $0
+mov_l    vr11, vr12
+mov_l    vr10, vr11
+mov_l    vr0, vr10
+jmp      .Lmain_return
+
+We also see a simple addition:
+
+a = b;
+x = a + c;
+
+mov_l    vr11, vr12
+add_l    vr14, vr11, vr13
+mov_l    vr10, vr14
+mov_l    vr0, vr10
+
+become:
+
+add_l    vr14, vr12, vr13
+mov_l    vr0, vr14
+
+on example29 we see a time change of:
+
+real    0m0.936s
+user    0m0.857s
+sys     0m0.000s
+
+-0.026s of real time
+
+and we note a reduction of 5 instructions in the high level code

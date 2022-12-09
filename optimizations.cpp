@@ -131,7 +131,7 @@ std::shared_ptr<InstructionSequence> CopyPropagation::transform_basic_block(cons
 std::shared_ptr<InstructionSequence> CopyPropagation::copy_propagation(InstructionSequence *block) {
     std::shared_ptr<InstructionSequence> result(new InstructionSequence());
     // empty  map of register number to constant value
-
+    constants.clear();
 
     for (auto i = block->cbegin(); i != block->cend(); i++) {
         Instruction *instruction = *i;
@@ -144,28 +144,26 @@ std::shared_ptr<InstructionSequence> CopyPropagation::copy_propagation(Instructi
                 } else {
                     constants[instruction->get_operand(0).get_base_reg()] = instruction->get_operand(1).get_base_reg();
                 }
-                result->append(instruction->duplicate());
-                continue;
             }
 
 
             Operand origin = instruction->get_operand(0);
-//
+            bool same = true;
             if (instruction->get_num_operands() == 2) {
                 Operand left = instruction->get_operand(1);
                 if (left.has_base_reg() && constants.find(left.get_base_reg()) != constants.end()) {
 
                     Operand copied_constant(Operand::VREG, constants[left.get_base_reg()]);
                     result->append(new Instruction(instruction->get_opcode(), origin, copied_constant));
+                    same = false;
                 } else {
-                    result->append(instruction->duplicate());
+
                 }
 
             } else if (instruction->get_num_operands() == 3) {
                 // Make new instruction with constant swapped in, trying either side
                 Operand left = instruction->get_operand(1);
                 Operand right = instruction->get_operand(2);
-                bool same = true;
 
                 if (left.has_base_reg() && constants.find(left.get_base_reg()) != constants.end()) {
                     same = false;
@@ -178,11 +176,9 @@ std::shared_ptr<InstructionSequence> CopyPropagation::copy_propagation(Instructi
                     result->append(new Instruction(instruction->get_opcode(), origin, instruction->get_operand(1),
                                                    copied_constant));
                 }
-                if (same) {
-                    result->append(instruction->duplicate());
-                }
-
-            } else {
+            }
+            // No change detected
+            if (same) {
                 result->append(instruction->duplicate());
             }
 
