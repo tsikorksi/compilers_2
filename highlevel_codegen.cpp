@@ -142,9 +142,12 @@ void HighLevelCodegen::visit_do_while_statement(Node *n) {
 
 void HighLevelCodegen::visit_for_statement(Node *n) {
     // evaluate assignment
+    if (m_optimize){
+        machine_reg[n->get_kid(0)->get_kid(1)->get_symbol()->get_vreg()] = m_callee_count;
+        m_callee_count++;
+    }
     visit(n->get_kid(0));
-    // annotate the loop variable
-    n->get_kid(0)->get_kid(1)->get_operand().make_callee();
+
     std::string jump_back = next_label();
     std::string jump_out = next_label();
     // set return point for loop
@@ -310,17 +313,23 @@ void HighLevelCodegen::visit_array_element_ref_expression(Node *n) {
 /// Set local operand to the stored vreg of the variable
 /// \param n local node
 void HighLevelCodegen::visit_variable_ref(Node *n) {
+    Operand op;
     if (n->get_symbol()->is_stack() || n->get_symbol()->needs_address() || n->get_type()->is_struct()) {
-        Operand op = get_offset_address(n);
+        op = get_offset_address(n);
         if (n->get_symbol()->needs_address()) {
             op = op.to_memref();
         }
-        n->set_operand(op);
+
     } else {
         Symbol * sym = n->get_symbol();
-        Operand local(Operand::VREG, sym->get_vreg());
-        n->set_operand(local);
+        int vreg = sym->get_vreg();
+        if (machine_reg.find(vreg) != machine_reg.end()) {
+            vreg = machine_reg[vreg];
+        }
+        op = Operand(Operand::VREG, vreg);
     }
+
+    n->set_operand(op);
 }
 
 void HighLevelCodegen::visit_literal_value(Node *n) {

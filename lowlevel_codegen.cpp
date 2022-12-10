@@ -452,7 +452,7 @@ Operand
 LowLevelCodeGen::get_ll_operand(Operand hl_operand, int size, const std::shared_ptr<InstructionSequence> &ll_iseq) {
     if (hl_operand.is_imm_ival() || hl_operand.is_imm_label() || hl_operand.is_label()) {
         return hl_operand;
-    } else if (hl_operand.get_base_reg() < 7){
+    } else if (hl_operand.get_base_reg() < 11) {
         // VREG is actually a predefined register
         Operand::Kind kind = select_mreg_kind(size);
         if (hl_operand.is_memref()) {
@@ -473,6 +473,15 @@ LowLevelCodeGen::get_ll_operand(Operand hl_operand, int size, const std::shared_
                 return {kind, MREG_R8};
             case 6:
                 return {kind, MREG_R9};
+            case 7:
+                return {kind, MREG_R12};
+            case 8:
+                return {kind, MREG_R13};
+            case 9:
+                return {kind, MREG_R14};
+            case 10:
+                return {kind, MREG_R15};
+
         }
     } else {
         Operand ll = Operand(Operand::MREG64_MEM_OFF, MREG_RBP, get_offset(hl_operand.get_base_reg()));

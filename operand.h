@@ -40,7 +40,7 @@ private:
     int m_basereg, m_index_reg;
     long m_imm_ival;
     std::string m_label;
-    bool callee_register = false;
+    bool callee_register;
 
 public:
     Operand(Kind kind = NONE);
@@ -110,7 +110,8 @@ public:
 
     bool is_callee() const { return callee_register; };
 
-    void make_callee() { callee_register = true; };
+    Operand set_callee(int vreg) const;
+    Operand make_callee() const;
 };
 
 #endif // OPERAND_H

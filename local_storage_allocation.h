@@ -12,8 +12,8 @@ public:
     // vr1 is 1st argument vreg
     static const int VREG_FIRST_ARG = 1;
 
-    // local variable allocation starts at vr10
-    static const int VREG_FIRST_LOCAL = 10;
+    // local variable allocation starts at vr16
+    static const int VREG_FIRST_LOCAL = 16;
 
 private:
     StorageCalculator m_storage_calc;

@@ -29,7 +29,7 @@ public:
 class CopyPropagation : public ControlFlowGraphTransform {
 private:
     std::shared_ptr<ControlFlowGraph> cfg;
-    std::map<int, int> constants;
+    std::map<int, Operand> constants;
 
 public:
     explicit CopyPropagation(const std::shared_ptr<ControlFlowGraph>& cfg);

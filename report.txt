@@ -77,4 +77,65 @@ sys     0m0.000s
 
 -0.026s of real time
 
-and we note a reduction of 5 instructions in the high level code
+and we note a reduction of 5 instructions in the high level code.
+
+The combination of copy and constant propagation is useful to see in example01:
+
+int main(void) {
+    int x;
+    x = 1 + 2;
+    return x;
+}
+
+which without optimization is:
+main:
+        enter    $0
+        mov_l    vr11, $1
+        mov_l    vr12, $2
+        add_l    vr13, vr11, vr12
+        mov_l    vr10, vr13
+        mov_l    vr0, vr10
+        jmp      .Lmain_return
+.Lmain_return:
+        leave    $0
+        ret
+
+and with it is:
+
+main:
+        enter    $0
+        add_l    vr13, $1, $2
+        mov_l    vr0, vr13
+        jmp      .Lmain_return
+.Lmain_return:
+        leave    $0
+        ret
+
+The two optimizations have not only removed pointless vreg assignments, but also cut out pointless
+moves from vreg to vreg.
+
+
+We note one peephole optimization:
+It is useful to assign machine registers to loop variables, such that they are faster, given that they are used often.
+that makes this:
+
+mov_l    vr19, $0
+mov_l    vr18, vr19
+
+become:
+mov_l    vr7, $0
+
+such that we are now using a machine register. In low level this looks like this:
+
+movl     $0, %r12d
+
+The number of instructions stays the same, however many memory-references become machine registers
+
+
+We note a speed of:
+real    0m0.876s
+user    0m0.807s
+sys     0m0.000s
+
+
+-0.06s of real time

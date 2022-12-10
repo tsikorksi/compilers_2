@@ -59,26 +59,20 @@ std::shared_ptr<InstructionSequence> ConstantPropagation::constant_propagation(I
                 // Make new instruction with constant swapped in, trying either side
                 Operand left = instruction->get_operand(1);
                 Operand right = instruction->get_operand(2);
-
                 if (left.has_base_reg() &&
                     constants.find(left.get_base_reg()) != constants.end() ) {
 
                     Operand copied_constant(Operand::IMM_IVAL, constants[left.get_base_reg()]);
-                    result->append(new Instruction(instruction->get_opcode(), origin, copied_constant, right));
-                } else if (right.has_base_reg() &&
-                           constants.find(right.get_base_reg()) != constants.end() ) {
+                    left = copied_constant;
+                }
+                if (right.has_base_reg() &&
+                    constants.find(right.get_base_reg()) != constants.end() ) {
 
                     Operand copied_constant(Operand::IMM_IVAL, constants[right.get_base_reg()]);
-                    result->append(new Instruction(instruction->get_opcode(), origin, instruction->get_operand(1), copied_constant));
-                } else if (left.has_base_reg() &&
-                           constants.find(left.get_base_reg()) != constants.end() && right.has_base_reg() &&
-                           constants.find(right.get_base_reg()) != constants.end()) {
-                    Operand copied_left(Operand::IMM_IVAL, constants[left.get_base_reg()]);
-                    Operand copied_right(Operand::IMM_IVAL, constants[right.get_base_reg()]);
-                    result->append(new Instruction(instruction->get_opcode(), origin, copied_left, copied_right));
-                } else {
-                    result->append(instruction->duplicate());
+                    right = copied_constant;
                 }
+                result->append(new Instruction(instruction->get_opcode(), origin, left, right));
+
             } else {
                 continue;
             }
@@ -142,22 +136,19 @@ std::shared_ptr<InstructionSequence> CopyPropagation::copy_propagation(Instructi
                 if (instruction->get_operand(1).is_imm_ival()) {
                     constants.erase(instruction->get_operand(0).get_base_reg());
                 } else {
-                    constants[instruction->get_operand(0).get_base_reg()] = instruction->get_operand(1).get_base_reg();
+                    constants[instruction->get_operand(0).get_base_reg()] = instruction->get_operand(1);
                 }
             }
 
 
             Operand origin = instruction->get_operand(0);
-            bool same = true;
             if (instruction->get_num_operands() == 2) {
                 Operand left = instruction->get_operand(1);
                 if (left.has_base_reg() && constants.find(left.get_base_reg()) != constants.end()) {
 
-                    Operand copied_constant(Operand::VREG, constants[left.get_base_reg()]);
-                    result->append(new Instruction(instruction->get_opcode(), origin, copied_constant));
-                    same = false;
+                    result->append(new Instruction(instruction->get_opcode(), origin, constants[left.get_base_reg()]));
                 } else {
-
+                    result->append(instruction->duplicate());
                 }
 
             } else if (instruction->get_num_operands() == 3) {
@@ -166,21 +157,14 @@ std::shared_ptr<InstructionSequence> CopyPropagation::copy_propagation(Instructi
                 Operand right = instruction->get_operand(2);
 
                 if (left.has_base_reg() && constants.find(left.get_base_reg()) != constants.end()) {
-                    same = false;
-                    Operand copied_constant(Operand::VREG, constants[left.get_base_reg()]);
-                    result->append(new Instruction(instruction->get_opcode(), origin, copied_constant, right));
+                    left = constants[left.get_base_reg()];
                 }
                 if (right.has_base_reg() && constants.find(right.get_base_reg()) != constants.end()) {
-                    same = false;
-                    Operand copied_constant(Operand::VREG, constants[right.get_base_reg()]);
-                    result->append(new Instruction(instruction->get_opcode(), origin, instruction->get_operand(1),
-                                                   copied_constant));
+                    right = constants[right.get_base_reg()];
                 }
+                result->append(new Instruction(instruction->get_opcode(), origin, left, right));
             }
-            // No change detected
-            if (same) {
-                result->append(instruction->duplicate());
-            }
+
 
         } else {
             result->append(instruction->duplicate());
@@ -250,4 +234,6 @@ bool LiveRegisters::is_caller_saved(int vreg_num) {
     }
     return false;
 }
+
+
 

@@ -13,6 +13,7 @@ private:
     int m_total_memory_storage;
     bool m_optimize;
     int vreg_boundary;
+    int next_local_vreg = 0;
 
 public:
 

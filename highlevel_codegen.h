@@ -13,6 +13,8 @@ private:
     bool m_optimize;
     int m_next_vreg;
     int m_next_label_num;
+    std::map<int, int> machine_reg;
+    int m_callee_count = 7;
     std::string m_return_label_name; // name of the label that return instructions should target
     std::shared_ptr<InstructionSequence> m_hl_iseq;
     std::vector<std::string> m_rodata;
